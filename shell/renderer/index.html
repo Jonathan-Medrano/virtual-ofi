@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+<title>Oficina virtual</title>
+<style>
+  :root { --bg:#15171a; --panel:#1f2328ee; --txt:#e6e8ea; --dim:#9aa1a8; --acc:#e88a3f; --line:#323840; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--txt); font:14px/1.4 "Segoe UI", system-ui, sans-serif; overflow:hidden; }
+  canvas#ofi { position:fixed; inset:0; width:100%; height:100%; display:block; }
+  #list { position:fixed; top:12px; left:12px; width:290px; max-height:60vh; overflow:auto; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px 12px; }
+  #list h2 { font-size:12px; margin:0 0 6px; color:var(--dim); font-weight:600; text-transform:uppercase; letter-spacing:.06em; }
+  #list .row { display:flex; align-items:center; gap:8px; padding:3px 0; }
+  #list .dot { width:10px; height:10px; border-radius:2px; flex:none; }
+  #list .st { margin-left:auto; color:var(--dim); font-size:12px; }
+  #list .st.waiting { color:var(--acc); font-weight:600; }
+  #list .empty { color:var(--dim); }
+  #gear { position:fixed; top:12px; right:12px; background:var(--panel); color:var(--txt); border:1px solid var(--line); border-radius:8px; padding:6px 12px; cursor:pointer; font:inherit; }
+  #setup { position:fixed; inset:0; background:#000a; display:none; align-items:center; justify-content:center; }
+  #setup.on { display:flex; }
+  #setup .card { width:min(520px, 94vw); max-height:92vh; overflow:auto; background:#1b1f24; border:1px solid var(--line); border-radius:12px; padding:20px 22px; }
+  #setup h1 { font-size:20px; margin:0 0 4px; }
+  #setup p.sub { margin:0 0 14px; color:var(--dim); }
+  #setup label { display:block; margin:10px 0 3px; font-weight:600; }
+  #setup small { color:var(--dim); display:block; margin-top:2px; }
+  #setup input[type=text], #setup input[type=password] { width:100%; padding:7px 9px; border-radius:6px; border:1px solid var(--line); background:#12151a; color:var(--txt); font:inherit; }
+  #setup .acc { display:flex; gap:8px; align-items:center; margin-top:6px; }
+  #setup .acc input[type=text] { flex:1; }
+  #setup input[type=color] { width:38px; height:32px; border:1px solid var(--line); background:none; padding:0; }
+  #setup .chk { display:flex; gap:8px; align-items:center; margin-top:14px; font-weight:400; }
+  #setup .btns { display:flex; gap:10px; margin-top:18px; justify-content:flex-end; }
+  #setup button { padding:8px 16px; border-radius:6px; border:1px solid var(--line); background:#272c33; color:var(--txt); cursor:pointer; font:inherit; }
+  #setup button.main { background:var(--acc); color:#1a1208; border-color:var(--acc); font-weight:600; }
+  #err { color:#ff7b6b; margin-top:8px; min-height:1em; }
+</style>
+</head>
+<body>
+<canvas id="ofi"></canvas>
+<div id="list"><h2>Sesiones</h2><div id="rows"><div class="empty">Buscando sesiones...</div></div></div>
+<button id="gear" title="Ajustes">Ajustes</button>
+<div id="setup">
+  <div class="card">
+    <h1 id="setup-title">Bienvenido a la oficina</h1>
+    <p class="sub">Todo esto es opcional: si lo salteás, la oficina muestra solo las sesiones de esta PC.</p>
+    <label for="url">Dirección del relay (opcional)</label>
+    <input id="url" type="text" placeholder="https://algo.workers.dev" autocomplete="off" spellcheck="false">
+    <small>Sirve para ver también las sesiones de tu otra PC.</small>
+    <label for="key">Clave del relay (opcional)</label>
+    <input id="key" type="password" autocomplete="off" spellcheck="false">
+    <small id="keyhint">Se guarda solo en esta PC y no se vuelve a mostrar.</small>
+    <label for="pc">Nombre de esta PC</label>
+    <input id="pc" type="text" autocomplete="off" spellcheck="false">
+    <label>Cuentas de Claude</label>
+    <div id="accs"></div>
+    <small>Ponele nombre y color a cada cuenta (ej. Cuenta A, Cuenta B). Aparecen acá cuando se detectan en los registros.</small>
+    <label class="chk"><input id="login" type="checkbox"> Abrir al iniciar sesión en Windows</label>
+    <div id="err"></div>
+    <div class="btns">
+      <button id="skip">Saltar</button>
+      <button id="save" class="main">Guardar</button>
+    </div>
+  </div>
+</div>
+<script src="main.js"></script>
+</body>
+</html>

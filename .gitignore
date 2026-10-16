@@ -4,3 +4,4 @@ release
 .superpowers
 *.log
 .env
+dist-shell
