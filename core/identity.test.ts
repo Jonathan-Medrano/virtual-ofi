@@ -29,7 +29,7 @@ describe('projectFromFolder (criterio documentado)', () => {
   })
   it('unknown_layout_keeps_only_last_segment', () => {
     expect(projectFromFolder('D--Trabajo-Clientes-Acme-web')).toBe('web')
-    expect(projectFromFolder('D--PRINCIPAL')).toBe('PRINCIPAL')
+    expect(projectFromFolder('D--Trabajo')).toBe('Trabajo')
   })
   it('home_only_or_empty_gives_fallback', () => {
     expect(projectFromFolder('C--Users-Fulano')).toBe('sin-nombre')
