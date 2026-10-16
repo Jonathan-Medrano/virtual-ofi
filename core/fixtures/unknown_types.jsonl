@@ -1,0 +1,5 @@
+{"type":"bridge-session","sessionId":"sess-0001","ownerAccountUuid":"00000000-0000-4000-8000-000000000001"}
+{"type":"user","timestamp":"2026-10-16T12:00:00.000Z","sessionId":"sess-0001","message":{"role":"user","content":[{"type":"text","text":"x"}]}}
+{"type":"algo-nuevo","timestamp":"2026-10-16T12:00:03.000Z"}
+{"type":"assistant","timestamp":"2026-10-16T12:00:10.000Z","sessionId":"sess-0001","message":{"role":"assistant","stop_reason":"end_turn","content":[{"type":"text","text":"x"}]}}
+{"type":"otro","foo":1}
