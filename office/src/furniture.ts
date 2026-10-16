@@ -177,12 +177,12 @@ export function planterGeometry(seed: number): THREE.BufferGeometry {
   });
 }
 
-/** Banco tapizado SIN respaldo (largo a lo largo de x): 1,4 × 0,42 m, asiento a 0,45 m, patas negras. */
+/** Banco tapizado SIN respaldo (largo a lo largo de x del modelo): 1 × 0,42 m, asiento a 0,45 m, patas negras. */
 export function benchGeometry(): THREE.BufferGeometry {
   return bake(g => {
-    for (const x of [-11, 10]) for (const z of [-3, 2]) g.box(x, 0, z, x + 1, 3, z + 1, PAL.black);
-    g.box(-11, 3, -3, 11, 4, 3, PAL.black);                 // bastidor
-    g.box(-11, 4, -3, 11, 7, 3, PAL.sofa);                  // almohadón
+    for (const x of [-8, 7]) for (const z of [-3, 2]) g.box(x, 0, z, x + 1, 3, z + 1, PAL.black);
+    g.box(-8, 3, -3, 8, 4, 3, PAL.black);                   // bastidor
+    g.box(-8, 4, -3, 8, 7, 3, PAL.sofa);                    // almohadón
     g.box(0, 6, -3, 1, 7, 3, PAL.black2);                   // costura al medio (2 lugares)
   });
 }

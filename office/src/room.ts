@@ -1,9 +1,10 @@
 // El salón: cáscara (paredes, techo, fondo acanalado), techo técnico (vigas, bandeja de cables, spots), lámparas y muebles,
 // todo fundido en UNA malla con color por vértice (MeshBasicMaterial: el sombreado ya viene horneado por cara, cero luces en
-// tiempo real) + su reflejo espejado bajo el piso + el piso pulido semitransparente encima. Total: 3 draw calls para todo el salón.
+// tiempo real) + el piso de madera clara mate aparte (textura con tablones). Total: 2 draw calls para todo el salón.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { officeLayout, ROOM, type OfficeLayout, type Seat } from './layout';
+import { hash3 } from '../vendor/kit3d';
 import {
   PAL, benchGeometry, cabinetGeometry, chairGeometry, columnGeometry, deskGeometry, lampGeometry, planterGeometry,
   plantGeometry,
@@ -107,7 +108,7 @@ function shellParts(L: OfficeLayout): THREE.BufferGeometry[] {
   return out;
 }
 
-/** Lámparas colgantes (aparte: el reflejo espejado no las lleva, su boca encendida reflejada se leía como mancha en el piso). */
+/** Lámparas colgantes. */
 function lampParts(L: OfficeLayout): THREE.BufferGeometry[] {
   return L.lamps.map(l => place(lampGeometry(ROOM.height - l.y - 7 / 16), l.x, l.y, l.z));
 }
@@ -133,7 +134,12 @@ function furnitureParts(L: OfficeLayout): THREE.BufferGeometry[] {
   return out;
 }
 
-/** Piso gris pulido: los reflejos (lámparas, paredes, sombra de los muebles) van pintados en la textura. */
+/**
+ * Piso de madera clara (roble/pino muy claro, más blanco que amarillo), casi mate: tablones a lo largo del salón con juntas
+ * finas y 3 tonos muy cercanos (se lee madera sin hacer ruido) + sombra de contacto suave bajo los muebles. Pedido del usuario:
+ * reemplaza al piso gris pulido de las fotos. Tiene que quedar más claro que la madera de los muebles para que se despeguen.
+ */
+export const FLOOR_TONES = ['#e8dfcb', '#e3d8c1', '#ece4d2'] as const;
 function floorTexture(L: OfficeLayout): THREE.Texture | null {
   if (typeof document === 'undefined') return null;
   const PX = 64, X = ROOM.length, W = ROOM.width;
@@ -142,48 +148,39 @@ function floorTexture(L: OfficeLayout): THREE.Texture | null {
   const ctx = cv.getContext('2d');
   if (!ctx) return null;
   const toPx = (x: number, z: number): [number, number] => [x * PX, (z + W / 2) * PX];
-  ctx.fillStyle = '#a3a8ac';
-  ctx.fillRect(0, 0, cv.width, cv.height);
-  // juntas de dilatación
-  ctx.strokeStyle = 'rgba(40,44,48,0.18)'; ctx.lineWidth = 2;
-  for (let x = 5; x < X; x += 5) { ctx.beginPath(); ctx.moveTo(x * PX, 0); ctx.lineTo(x * PX, cv.height); ctx.stroke(); }
-  ctx.beginPath(); ctx.moveTo(0, cv.height / 2); ctx.lineTo(cv.width, cv.height / 2); ctx.stroke();
-  // reflejo del zócalo negro junto a las paredes y de la pared blanca un poco más adentro
-  for (const s of [0, 1]) {
-    const y0 = s ? cv.height : 0, dir = s ? -1 : 1;
-    const g = ctx.createLinearGradient(0, y0, 0, y0 + dir * 1.6 * PX);
-    g.addColorStop(0, 'rgba(25,27,30,0.55)'); g.addColorStop(0.35, 'rgba(25,27,30,0.12)'); g.addColorStop(0.6, 'rgba(255,255,255,0.10)'); g.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = g; ctx.fillRect(0, s ? cv.height - 1.6 * PX : 0, cv.width, 1.6 * PX);
+  const PLANK = 0.16 * PX;                       // ancho del tablón
+  const rnd = (i: number, j: number) => hash3(i, j, 7);
+  for (let row = 0; row * PLANK < cv.height; row++) {
+    let x = -rnd(row, 0) * 2 * PX;               // juntas de punta corridas entre filas
+    for (let k = 0; x < cv.width; k++) {
+      const len = (1.4 + rnd(row, k + 1) * 1.2) * PX;
+      ctx.fillStyle = FLOOR_TONES[Math.floor(rnd(row, k + 50) * FLOOR_TONES.length)]!;
+      ctx.fillRect(x, row * PLANK, len, PLANK);
+      ctx.fillStyle = 'rgba(150,125,90,0.22)';
+      ctx.fillRect(x, row * PLANK, 1, PLANK);    // junta de punta
+      x += len;
+    }
+    ctx.fillStyle = 'rgba(150,125,90,0.2)';
+    ctx.fillRect(0, row * PLANK, cv.width, 1);   // junta entre tablones
   }
-  { const g = ctx.createLinearGradient(cv.width, 0, cv.width - 2 * PX, 0); g.addColorStop(0, 'rgba(25,27,30,0.6)'); g.addColorStop(1, 'rgba(25,27,30,0)'); ctx.fillStyle = g; ctx.fillRect(cv.width - 2 * PX, 0, 2 * PX, cv.height); }
-  // sombra de contacto bajo islas, muebles y sillones
+  // sombra de contacto suave bajo islas, muebles y bancos
   ctx.filter = 'blur(10px)';
-  ctx.fillStyle = 'rgba(30,32,36,0.32)';
+  ctx.fillStyle = 'rgba(60,50,40,0.22)';
   for (const p of L.props) {
     if (p.kind === 'chair' || p.kind === 'column') continue;
     const [px, pz] = toPx(p.x, p.z);
     ctx.fillRect(px - (p.w / 2 + 0.06) * PX, pz - (p.d / 2 + 0.06) * PX, (p.w + 0.12) * PX, (p.d + 0.12) * PX);
   }
   ctx.filter = 'none';
-  // brillo suave de las lámparas en el piso pulido
-  for (const l of L.lamps) {
-    const [px, pz] = toPx(l.x, l.z);
-    const g = ctx.createRadialGradient(px, pz, 0, px, pz, 1.1 * PX);
-    g.addColorStop(0, 'rgba(255,246,226,0.30)'); g.addColorStop(1, 'rgba(255,246,226,0)');
-    ctx.fillStyle = g; ctx.fillRect(px - 1.1 * PX, pz - 1.1 * PX, 2.2 * PX, 2.2 * PX);
-  }
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
   return tex;
 }
 
-/** Cuánto tapa el piso al reflejo (1 = piso mate, sin reflejo). */
-const FLOOR_OPACITY = 0.72;
-
 export interface Office { group: THREE.Group; seats: Seat[]; extraSeats: Seat[] }
 
-/** Arma la oficina estática: 3 mallas (todo lo voxel fundido, su reflejo y el piso). Liberar con `disposeObject(group)` del kit. */
+/** Arma la oficina estática: 2 mallas (todo lo voxel fundido y el piso de madera). Liberar con `disposeObject(group)` del kit. */
 export function buildOffice(): Office {
   const L = officeLayout();
   const group = new THREE.Group();
@@ -191,29 +188,18 @@ export function buildOffice(): Office {
   const parts = [...shellParts(L), ...furnitureParts(L)];
   const lamps = lampParts(L);
   const merged = mergeGeometries([...parts, ...lamps], false);
-  const reflected = mergeGeometries(parts, false);
   for (const p of [...parts, ...lamps]) p.dispose();
-  if (!merged || !reflected) throw new Error('buildOffice: no se pudieron fundir las geometrías');
-  reflected.computeBoundingSphere();
+  if (!merged) throw new Error('buildOffice: no se pudieron fundir las geometrías');
   merged.computeBoundingSphere();
   const solid = new THREE.Mesh(merged, new THREE.MeshBasicMaterial({ vertexColors: true }));
   solid.name = 'oficina-voxel';
   solid.matrixAutoUpdate = false;
   group.add(solid);
 
-  // Piso pulido: el salón espejado debajo del piso (la misma geometría sin las lámparas, 1 draw call más) y el piso semitransparente encima.
-  // Es el reflejo de verdad según desde dónde mires, sin render extra de la escena (un Reflector la dibujaría dos veces).
-  const mirror = new THREE.Mesh(reflected, new THREE.MeshBasicMaterial({ vertexColors: true }));
-  mirror.name = 'oficina-reflejo';
-  mirror.scale.y = -1;
-  mirror.updateMatrix();
-  mirror.matrixAutoUpdate = false;
-  group.add(mirror);
-
   const tex = floorTexture(L);
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(ROOM.length, ROOM.width).rotateX(-Math.PI / 2).translate(ROOM.length / 2, 0, 0),
-    new THREE.MeshBasicMaterial({ ...(tex ? { map: tex } : { color: 0xa3a8ac }), transparent: true, opacity: FLOOR_OPACITY, depthWrite: true }),
+    new THREE.MeshBasicMaterial(tex ? { map: tex } : { color: FLOOR_TONES[0] }),
   );
   floor.name = 'oficina-piso';
   floor.matrixAutoUpdate = false;

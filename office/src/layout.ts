@@ -86,23 +86,29 @@ export function officeLayout(): OfficeLayout {
     props.push({ kind: 'column', x, z: wall * (ROOM.width / 2 - 0.25), w: 0.6, d: 0.5, rot: 0 });
   }
 
-  // Centro del pasillo: maceta con una planta mediana y un banco SIN respaldo a cada lado (izquierda y derecha, a lo ancho del
-  // pasillo). Cada banco tiene 2 lugares extra (sesiones de más), sentados mirando hacia afuera. Entre el banco y el borde del
-  // pasillo quedan ≥ 0,5 m para pasar, y estas islas de descanso caen entre las islas de escritorios (no hay sillas al lado).
-  const PLANTER = 0.7, BENCH_W = 1.4, BENCH_D = 0.42, GAP = 0.08;
+  // Centro del pasillo: maceta con una planta mediana y UN banco sin respaldo a cada lado (izquierda y derecha), de 1 m, con el eje
+  // largo de lado a lado del salón: una punta hacia la planta y la otra hacia su pared. Cada banco tiene 2 lugares extra (sesiones de
+  // más), sentados mirando a lo largo del pasillo, hacia la entrada (-x: de frente a la cámara habitual). Estos descansos caen entre
+  // islas (no hay sillas al lado) y dejan ≥ 0,8 m libres más allá de la punta de cada banco para pasar.
+  const PLANTER = 0.7, BENCH_LEN = 1.0, BENCH_D = 0.42, GAP = 0.08;
   for (const xc of LOUNGE_X) {
     props.push({ kind: 'planter', x: xc, z: 0, w: PLANTER, d: PLANTER, rot: 0 });
     for (const side of [-1, 1]) {
-      const bz = side * (PLANTER / 2 + GAP + BENCH_D / 2);
-      props.push({ kind: 'bench', x: xc, z: bz, w: BENCH_W, d: BENCH_D, rot: 0, seats: 2 });
-      for (const dx of [-0.42, 0.42]) {
-        extraSeats.push({ id: 16 + extraSeats.length, position: { x: xc + dx, y: 0, z: bz }, facing: side > 0 ? 0 : Math.PI, island: -1 });
+      const bz = side * (PLANTER / 2 + GAP + BENCH_LEN / 2);
+      props.push({ kind: 'bench', x: xc, z: bz, w: BENCH_D, d: BENCH_LEN, rot: Math.PI / 2, seats: 2 });
+      for (const dz of [-0.4, 0.4]) {
+        extraSeats.push({ id: 16 + extraSeats.length, position: { x: xc, y: 0, z: bz + dz }, facing: -Math.PI / 2, island: -1 });
       }
     }
   }
 
-  // Muchas plantas: grandes en los rincones y entre columnas, contra las paredes (fuera del pasillo).
-  const wallPlants: Array<[number, number]> = [[0.6, 0.75], [8.4, 0.75], [15.1, 0.8], [19.3, 0.8], [18.2, 0.8]];
+  // Plantas medianas en las 4 esquinas, pegadas al rincón (no tapan columnas ni el fondo acanalado).
+  for (const x of [0.4, ROOM.length - 0.4]) for (const wall of [-1, 1]) {
+    props.push({ kind: 'plant', x, z: wall * (ROOM.width / 2 - 0.4), w: 0.6, d: 0.6, rot: 0, size: 0.8 });
+  }
+
+  // Muchas plantas: entre columnas, contra las paredes (fuera del pasillo).
+  const wallPlants: Array<[number, number]> = [[8.4, 0.75], [15.1, 0.8], [18.2, 0.8]];
   for (const [x, size] of wallPlants) for (const wall of [-1, 1]) {
     props.push({ kind: 'plant', x, z: wall * (ROOM.width / 2 - 0.45), w: 0.6, d: 0.6, rot: 0, size });
   }

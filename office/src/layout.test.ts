@@ -69,15 +69,34 @@ describe('layout de la oficina', () => {
     const planters = L.props.filter(p => p.kind === 'planter');
     expect(planters.length).toBeGreaterThan(0);
     for (const pl of planters) {
-      // un banco sin respaldo a cada lado de la planta, a lo ancho del pasillo (misma x, z a izquierda y derecha)
+      // UN banco sin respaldo a cada lado de la planta, de ~1 m, con el eje largo de lado a lado del salón (a lo largo de z)
       const benches = L.props.filter(p => p.kind === 'bench' && Math.abs(p.x - pl.x) < 0.01);
       expect(benches).toHaveLength(2);
       expect(benches.some(b => b.z < pl.z - pl.d / 2) && benches.some(b => b.z > pl.z + pl.d / 2)).toBe(true);
-      // queda al menos 0,5 m libre entre el banco y el borde del pasillo para pasar
-      for (const b of benches) expect(ROOM.aisleHalf - (Math.abs(b.z) + b.d / 2)).toBeGreaterThanOrEqual(0.5);
+      for (const b of benches) {
+        expect(b.d).toBeGreaterThan(b.w);                       // eje largo a lo ancho del salón
+        expect(b.d).toBeGreaterThanOrEqual(0.9);
+        expect(b.d).toBeLessThanOrEqual(1.1);
+        // 2 lugares por banco, sobre el banco
+        const on = L.extraSeats.filter(s => Math.abs(s.position.x - b.x) < b.w / 2 && Math.abs(s.position.z - b.z) < b.d / 2);
+        expect(on).toHaveLength(2);
+        // para pasar: ≥ 0,8 m libres entre la punta del banco y cualquier otro mueble en esa franja de x
+        const end = Math.abs(b.z) + b.d / 2;
+        const blockers = L.props.filter(p => p !== b && Math.abs(p.x - b.x) < (p.w + b.w) / 2 && Math.sign(p.z) === Math.sign(b.z)
+          && Math.abs(p.z) - p.d / 2 < end + 0.8 && Math.abs(p.z) + p.d / 2 > end);
+        expect(blockers).toEqual([]);
+      }
     }
     // nada de sillones con respaldo en el pasillo
     expect(L.props.some(p => (p.kind as string) === 'sofa' || (p.kind as string) === 'armchair')).toBe(false);
+  });
+
+  it('plants_in_the_4_corners', () => {
+    const corners = [[0, -1], [0, 1], [ROOM.length, -1], [ROOM.length, 1]] as const;
+    for (const [cx, sz] of corners) {
+      const near = L.props.filter(p => p.kind === 'plant' && Math.abs(p.x - cx) < 0.6 && Math.abs(p.z - sz * ROOM.width / 2) < 0.6);
+      expect(near, `esquina ${cx},${sz}`).toHaveLength(1);
+    }
   });
 
   it('seats_face_their_desk', () => {
