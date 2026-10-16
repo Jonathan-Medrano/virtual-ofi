@@ -24,6 +24,7 @@
   #bar { position:fixed; top:12px; right:12px; display:flex; gap:8px; }
   #bar button { background:var(--panel); color:var(--txt); border:1px solid var(--line); border-radius:8px; padding:6px 12px; cursor:pointer; font:inherit; }
   #bar button.on { background:var(--acc); color:#1a1208; border-color:var(--acc); font-weight:600; }
+  body.walking #list, body.walking #bar { display:none; }
   #gear { background:var(--panel); color:var(--txt); border:1px solid var(--line); border-radius:8px; padding:6px 12px; cursor:pointer; font:inherit; }
   #setup { position:fixed; inset:0; background:#000a; display:none; align-items:center; justify-content:center; }
   #setup.on { display:flex; }
@@ -46,7 +47,7 @@
 <body>
 <canvas id="ofi"></canvas>
 <div id="list"><h2>Sesiones <span class="cnt" id="cnt"></span><button id="hide" title="Ocultar o mostrar el listado">ocultar</button></h2><div id="rows"><div class="empty">Buscando sesiones...</div></div></div>
-<div id="bar"><button id="demo" title="Ver la oficina con sesiones de ejemplo">Demo</button><button id="gear" title="Ajustes">Ajustes</button></div>
+<div id="bar"><button id="walk" title="Caminar por la oficina en primera persona (Esc para salir)">Recorrer</button><button id="demo" title="Ver la oficina con sesiones de ejemplo">Demo</button><button id="gear" title="Ajustes">Ajustes</button></div>
 <div id="setup">
   <div class="card">
     <h1 id="setup-title">Bienvenido a la oficina</h1>

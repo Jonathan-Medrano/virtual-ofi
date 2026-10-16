@@ -20,6 +20,8 @@ export interface OfficeCamera {
   update(dt: number): void;
   /** Salta a una vista guardada. */
   setPreset(name: CameraPreset): void;
+  /** Prende/apaga los controles del mouse (el modo recorrido los apaga mientras dura; la vista queda como estaba). */
+  setEnabled(on: boolean): void;
   /** Saca los listeners del canvas. */
   dispose(): void;
 }
@@ -67,6 +69,7 @@ export function createOfficeCamera(canvas: HTMLCanvasElement, opts: { preset?: C
       camera.lookAt(controls.target);
     },
     setPreset,
+    setEnabled(on) { controls.enabled = on; },
     dispose() { controls.dispose(); },
   };
 }

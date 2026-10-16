@@ -1,9 +1,11 @@
 // Renderer: monta la oficina (office/) con un personaje por sesión y un panel liviano con el listado de texto.
 // Modo Demo (botón "Demo" o ?demo): en vez de las sesiones reales usa el simulador de la oficina (createDemoFeed).
+// Modo recorrido (botón "Recorrer" o ?walk): primera persona por la oficina; Esc vuelve a la cámara libre como estaba.
 import * as THREE from 'three'
 import { buildOffice, createOfficeCamera } from '../../office/src/index'
 import { createCrowd, accountColor, type Crowd } from '../../office/src/character'
 import { createDemoFeed, type DemoFeed } from '../../office/src/demo'
+import { createWalkView, type WalkView } from '../../office/src/walk-view'
 import type { SessionSnapshot } from '../../core/identity'
 import type { SessionsPayload } from '../api'
 import { panelRows, countLine, hexToInt, statusEs } from './panel'
@@ -15,6 +17,7 @@ const rows = document.getElementById('rows')!
 const cnt = document.getElementById('cnt')!
 const hideBtn = document.getElementById('hide')!
 const demoBtn = document.getElementById('demo')!
+const walkBtn = document.getElementById('walk') as HTMLButtonElement
 
 const store = {
   get(k: string) { try { return localStorage.getItem(k) } catch { return null } },
@@ -27,6 +30,8 @@ let demoFeed: DemoFeed | null = null
 let demoSnaps: SessionSnapshot[] = []
 let crowd: Crowd | null = null
 let colors: Record<string, string> = {}
+let walk: WalkView | null = null
+let enterWalk: () => void = () => {}
 
 const hex = (n: number) => '#' + n.toString(16).padStart(6, '0')
 const current = (): SessionSnapshot[] => (demoOn ? demoSnaps : real.sessions)
@@ -90,6 +95,14 @@ function mountOffice() {
   scene.add(office.group)
   crowd = createCrowd(scene, office.seats, office.extraSeats, { shirtOf: a => hexToInt(colors[a]) })
   const cam = createOfficeCamera(canvas, { preset: 'alto' })
+  walk = createWalkView({
+    canvas,
+    crowd: () => crowd,
+    sessionOf: id => current().find(s => s.id === id),
+    statusText: statusEs,
+    onExit: () => { cam.setEnabled(true); document.body.classList.remove('walking') },
+  })
+  enterWalk = () => { cam.setEnabled(false); document.body.classList.add('walking'); walk!.enter() }
   const resize = () => {
     renderer.setSize(canvas.clientWidth, canvas.clientHeight, false)
     cam.camera.aspect = canvas.clientWidth / Math.max(1, canvas.clientHeight)
@@ -106,8 +119,8 @@ function mountOffice() {
       if (feedAcc >= 1) { feedAcc = 0; demoSnaps = demoFeed.tick(); apply() }
     }
     crowd!.update(dt)
-    cam.update(dt)
-    renderer.render(scene, cam.camera)
+    if (walk!.active) walk!.update(dt); else cam.update(dt)
+    renderer.render(scene, walk!.active ? walk!.camera : cam.camera)
     requestAnimationFrame(frame)
   }
   requestAnimationFrame(frame)
@@ -117,10 +130,13 @@ try {
   mountOffice()
 } catch {
   crowd = null // sin WebGL el listado igual funciona
+  walkBtn.disabled = true
 }
 hideBtn.addEventListener('click', () => setHidden(!listEl.classList.contains('min')))
 demoBtn.addEventListener('click', () => setDemo(!demoOn))
+walkBtn.addEventListener('click', () => enterWalk())
 setHidden(store.get('ofi.listHidden') === '1')
 if (demoOn) setDemo(true)
+if (new URLSearchParams(location.search).has('walk')) enterWalk()
 window.ofi.onSessions(p => { real = p; if (!demoOn) apply() })
 void initSetup()

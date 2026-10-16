@@ -3,11 +3,14 @@
 //   ?n=8         escena fija de n sesiones (sin n: simulador en vivo de 12 sesiones que cambian solas)
 //   &settled     las sesiones aparecen directo en su lugar (si no, entran por la puerta)
 //   &cam=entrada|isla|fondo|alto   &shot (sin HUD)
-// Expone window.__ofi (ready, calls, triangles, fps, personajes) para las capturas.
+//   &walk        arranca en el modo recorrido (primera persona; botón "Recorrer" para volver a entrar, Esc para salir)
+// Expone window.__ofi (ready, calls, triangles, fps, personajes, walk) para las capturas y window.__walk (el modo recorrido).
 import * as THREE from 'three';
 import { buildOffice, createOfficeCamera, CAMERA_PRESETS, type CameraPreset } from './index';
 import { createCrowd, ACCOUNT_COLORS, accountColorIndex } from './character';
 import { createDemoFeed, demoSnapshots } from './demo';
+import { createWalkView } from './walk-view';
+import { statusEs } from '../../shell/renderer/panel';
 import type { SessionSnapshot } from '../../core/identity';
 
 const q = new URLSearchParams(location.search);
@@ -36,6 +39,19 @@ crowd.sync(snaps);
 const cam = q.get('cam');
 const ocam = createOfficeCamera(canvas, { preset: cam && cam in CAMERA_PRESETS ? (cam as CameraPreset) : 'alto' });
 
+const walkBtn = document.getElementById('recorrer')!;
+const walk = createWalkView({
+  canvas,
+  crowd: () => crowd,
+  sessionOf: id => snaps.find(s => s.id === id),
+  statusText: statusEs,
+  onExit: () => { ocam.setEnabled(true); document.body.classList.remove('walking'); },
+});
+function enterWalk() { ocam.setEnabled(false); document.body.classList.add('walking'); walk.enter(); }
+walkBtn.addEventListener('click', enterWalk);
+(window as unknown as { __walk: typeof walk }).__walk = walk;
+if (q.has('walk')) enterWalk();
+
 const resize = () => renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
 window.addEventListener('resize', resize);
 resize();
@@ -57,7 +73,10 @@ renderLegend();
 
 let frames = 0, acc = 0, last = performance.now(), feedAcc = 0;
 const t0 = performance.now();
-const stats = { ready: false, calls: 0, triangles: 0, fps: 0, personajes: 0, sesiones: snaps.length };
+const stats = {
+  ready: false, calls: 0, triangles: 0, fps: 0, personajes: 0, sesiones: snaps.length,
+  walk: null as null | { x: number; z: number; yaw: number; pitch: number; target: string | null },
+};
 (window as unknown as { __ofi: typeof stats }).__ofi = stats;
 
 function frame(now: number) {
@@ -68,9 +87,10 @@ function frame(now: number) {
     if (feedAcc >= 1) { feedAcc = 0; snaps = feed.tick(); crowd.sync(snaps); renderLegend(); }
   }
   crowd.update(dt);
-  ocam.update(dt);
+  if (walk.active) walk.update(dt); else ocam.update(dt);
   renderer.info.reset();
-  renderer.render(scene, ocam.camera);
+  renderer.render(scene, walk.active ? walk.camera : ocam.camera);
+  stats.walk = walk.active && walk.state ? { ...walk.state, target: walk.target } : null;
   stats.calls = renderer.info.render.calls;
   stats.triangles = renderer.info.render.triangles;
   stats.personajes = crowd.size;
