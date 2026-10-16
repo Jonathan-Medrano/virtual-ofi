@@ -45,7 +45,7 @@ describe('modo recorrido (primera persona)', () => {
 
   it('slides_along_wall', () => {
     // pegado a la pared de fondo, empujando en diagonal: no la atraviesa pero avanza de costado
-    const s0: PlayerState = { x: ROOM.length - 1, z: -2.6, yaw: yawTo(1, 1), pitch: 0 };
+    const s0: PlayerState = { x: ROOM.length - 1, z: -3.4, yaw: yawTo(1, 1), pitch: 0 };   // entre la planta del rincón y las del fondo
     expect(playerFree(s0, world)).toBe(true);
     const s = walk(s0, input({ forward: 1 }), 1.5);
     expect(s.x).toBeLessThanOrEqual(ROOM.length - PLAYER_RADIUS + 1e-9);

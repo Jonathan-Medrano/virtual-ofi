@@ -6,10 +6,10 @@ import { ROOM } from './layout';
 
 /** Vistas guardadas (posición y foco). `entrada` = como las fotos: desde la puerta mirando al fondo. */
 export const CAMERA_PRESETS = {
-  entrada: { pos: [0.4, 1.9, ROOM.aisleZ], target: [10, 0.9, ROOM.aisleZ] },
+  entrada: { pos: [0.3, 2.45, ROOM.aisleZ + 0.9], target: [ROOM.length / 2 + 2, 0.5, ROOM.aisleZ] },
   isla: { pos: [2.2, 2.6, 3.9], target: [7.5, 0.8, 0.4] },
-  fondo: { pos: [19.3, 2.9, -3.6], target: [10, 0.6, ROOM.aisleZ] },
-  alto: { pos: [0.5, 2.85, ROOM.aisleZ - 2.3], target: [9, 0, ROOM.aisleZ + 0.3] },
+  fondo: { pos: [ROOM.length - 0.4, 2.1, 3.9], target: [ROOM.length / 2 - 1, 0.8, -2.2] },
+  alto: { pos: [0.5, 2.85, ROOM.aisleZ - 2.3], target: [ROOM.length * 0.55, 0, ROOM.aisleZ + 0.3] },
 } as const satisfies Record<string, { pos: readonly number[]; target: readonly number[] }>;
 export type CameraPreset = keyof typeof CAMERA_PRESETS;
 

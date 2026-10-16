@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { officeLayout, ROOM, AISLE_PROP_KINDS, type Prop } from './layout';
+import { officeLayout, ROOM, AISLE_PROP_KINDS, SIDE_DOOR, type Prop } from './layout';
 
 const L = officeLayout();
 const all = [...L.seats, ...L.extraSeats];
@@ -104,6 +104,41 @@ describe('layout de la oficina', () => {
       const near = L.props.filter(p => p.kind === 'plant' && Math.abs(p.x - cx) < 0.6 && Math.abs(p.z - sz * ROOM.width / 2) < 0.6);
       expect(near, `esquina ${cx},${sz}`).toHaveLength(1);
     }
+  });
+
+  it('back_wall_is_right_behind_the_last_desks', () => {
+    // como en las fotos: terminada la última isla, la pared acanalada está ahí. Franja de ≤ 1,25 m: plantitas contra la pared y
+    // un paso de ≥ 0,65 m entre la punta de la mesa y las macetas (por ahí salen los de las sillas contra la pared derecha)
+    const lastDesk = Math.max(...L.props.filter(p => p.kind === 'desk').map(p => p.x + p.w / 2));
+    expect(ROOM.length - lastDesk).toBeLessThanOrEqual(1.25);
+    const backPlants = L.props.filter(p => p.kind === 'plant' && p.x > lastDesk);
+    for (const p of backPlants) expect(p.x - p.w / 2 - lastDesk).toBeGreaterThanOrEqual(0.65);
+    // y nada queda fuera del salón
+    for (const p of L.props) expect(p.x + p.w / 2, p.kind).toBeLessThanOrEqual(ROOM.length + 1e-9);
+  });
+
+  it('plants_behind_the_back_islands', () => {
+    const back = L.islands.filter(i => i.x1 === Math.max(...L.islands.map(j => j.x1)));
+    expect(back).toHaveLength(2);
+    for (const isl of back) {
+      const behind = L.props.filter(p => p.kind === 'plant' && p.x > isl.x1 && Math.abs(p.z - isl.zc) <= isl.depth / 2);
+      expect(behind.length, `isla ${isl.id}`).toBeGreaterThanOrEqual(2);
+      for (const p of behind) expect(p.size ?? 1).toBeLessThanOrEqual(0.7);    // medianas, no grandes
+    }
+  });
+
+  it('side_door_on_left_wall_where_the_desks_end', () => {
+    const w = SIDE_DOOR.x1 - SIDE_DOOR.x0;
+    expect(w).toBeGreaterThanOrEqual(1.2);
+    expect(w).toBeLessThanOrEqual(1.5);
+    expect(SIDE_DOOR.wallZ).toBe(-ROOM.width / 2);
+    expect(SIDE_DOOR.x1).toBeLessThan(ROOM.length);
+    // empieza donde terminan las sillas de la izquierda
+    const leftChairs = L.props.filter(p => p.kind === 'chair' && p.z < ROOM.aisleZ);
+    expect(SIDE_DOOR.x0).toBeGreaterThanOrEqual(Math.max(...leftChairs.map(p => p.x)) - 0.6);
+    // y la pasada no está tapada: nada dentro de 0,8 m de la pared frente al hueco
+    const blocking = L.props.filter(p => p.x + p.w / 2 > SIDE_DOOR.x0 && p.x - p.w / 2 < SIDE_DOOR.x1 && p.z - p.d / 2 < SIDE_DOOR.wallZ + 0.8);
+    expect(blocking).toEqual([]);
   });
 
   it('seats_face_their_desk', () => {

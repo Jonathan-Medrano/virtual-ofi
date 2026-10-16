@@ -3,7 +3,7 @@
 // tiempo real) + el piso de madera clara mate aparte (textura con tablones). Total: 2 draw calls para todo el salón.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { officeLayout, ROOM, type OfficeLayout, type Seat } from './layout';
+import { officeLayout, ROOM, SIDE_DOOR, type OfficeLayout, type Seat } from './layout';
 import { hash3 } from '../vendor/kit3d';
 import {
   PAL, benchGeometry, cabinetGeometry, chairGeometry, columnGeometry, deskGeometry, lampGeometry, planterGeometry,
@@ -60,14 +60,34 @@ function shellParts(L: OfficeLayout): THREE.BufferGeometry[] {
   const out: THREE.BufferGeometry[] = [];
   const add = (...a: Parameters<typeof boxGeo>) => out.push(boxGeo(...a));
 
-  // paredes laterales: blancas arriba, zócalo negro acanalado abajo
+  // paredes laterales: blancas arriba, zócalo negro acanalado abajo. La izquierda (z < 0) tiene el hueco a la otra sala.
+  const gaps = (s: number): Array<[number, number]> => s < 0 ? [[0, SIDE_DOOR.x0], [SIDE_DOOR.x1, X]] : [[0, X]];
   for (const s of [-1, 1]) {
     const z0 = s < 0 ? -hw - T : hw, z1 = s < 0 ? -hw : hw + T;
-    add(0, ZOC, z0, X, H, z1, PAL.wall, { shade: FLAT });
-    add(0, 0, z0, X, ZOC, z1, PAL.black, { shade: FLAT });
     const zi = s < 0 ? -hw : hw - 0.03;
-    for (let x = 0.1; x < X; x += 0.16) add(x, 0, zi, x + 0.07, ZOC, zi + 0.03, PAL.black2, { shade: FLAT });
-    add(0, ZOC, zi, X, ZOC + 0.03, zi + 0.03, PAL.black2, { shade: FLAT });
+    for (const [a, b] of gaps(s)) {
+      add(a, ZOC, z0, b, H, z1, PAL.wall, { shade: FLAT });
+      add(a, 0, z0, b, ZOC, z1, PAL.black, { shade: FLAT });
+      for (let x = a + 0.1; x < b - 0.07; x += 0.16) add(x, 0, zi, x + 0.07, ZOC, zi + 0.03, PAL.black2, { shade: FLAT });
+      add(a, ZOC, zi, b, ZOC + 0.03, zi + 0.03, PAL.black2, { shade: FLAT });
+    }
+  }
+  // hueco de piso a techo en la pared izquierda: jambas y dintel de chapa negra
+  {
+    const { x0, x1 } = SIDE_DOOR, zw = -hw;
+    add(x0 - 0.06, 0, zw - T - 0.02, x0, H, zw + 0.04, PAL.black2, { shade: FLAT });
+    add(x1, 0, zw - T - 0.02, x1 + 0.06, H, zw + 0.04, PAL.black2, { shade: FLAT });
+    add(x0 - 0.06, H - 0.12, zw - T - 0.02, x1 + 0.06, H, zw + 0.04, PAL.black2, { shade: FLAT });
+    // indicio de la otra sala: piso, paredes y techo más tenues (no se modela la sala entera)
+    const DIM = [0.55, 0.5, 0.62, 0.3, 0.55, 0.5];
+    const ox0 = x0 - 1.4, ox1 = x1 + 0.6, oz0 = zw - T - 2.6, oz1 = zw - T;
+    add(ox0, -0.05, oz0, ox1, 0, oz1, 0xd9cfba, { shade: DIM });                 // piso de madera en penumbra
+    add(ox0, 0, oz0 - T, ox1, H, oz0, PAL.wall, { shade: DIM });                 // pared de enfrente
+    add(ox0 - T, 0, oz0, ox0, H, oz1, PAL.wall, { shade: DIM });
+    add(ox1, 0, oz0, ox1 + T, H, oz1, PAL.wall, { shade: DIM });
+    add(ox0, 0, oz0, ox1, 0.12, oz0 + 0.03, PAL.black, { shade: DIM });         // zócalo
+    add(ox0 - T, H, oz0 - T, ox1 + T, H + 0.1, oz1, PAL.black, { shade: DIM });  // techo
+    add(x0 + 0.1, 0, oz0 + 0.03, x1 - 0.1, 0.9, oz0 + 0.5, PAL.wood, { shade: DIM });   // un mueble bajo al fondo
   }
   // pared de entrada (blanca con zócalo y una puerta de vidrio oscuro)
   add(-T, ZOC, -hw, 0, H, hw, PAL.wall, { shade: FLAT });
@@ -94,7 +114,7 @@ function shellParts(L: OfficeLayout): THREE.BufferGeometry[] {
     for (let u = a0 + 0.6; u < a1; u += 1.5) for (const v of [c - 0.17, c + 0.15]) b(u, TY + 0.06, v, u + 0.015, H - 0.32, v + 0.015);
   };
   tray(true, 0.2, X - 0.2, ROOM.aisleZ);   // bandeja principal sobre el pasillo
-  for (const x of [2.6, 9.4, 16.2]) tray(false, -hw + 0.2, hw - 0.2, x);
+  for (const x of [2.6, 9.4, X - 1.2]) tray(false, -hw + 0.2, hw - 0.2, x);
   // cables negros sobre la bandeja central
   add(0.2, TY + 0.015, ROOM.aisleZ - 0.08, X - 0.2, TY + 0.05, ROOM.aisleZ + 0.02, PAL.black2);
   // spots sobre dos rieles a lo largo del salón

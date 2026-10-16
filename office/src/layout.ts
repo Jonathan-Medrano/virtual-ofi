@@ -33,13 +33,20 @@ const LEFT_ZC = RIGHT_ZC - DESK_DEPTH - DESK_GAP;   // -1,0: islas de la izquier
  * caminar entre los respaldos de las sillas del lado del pasillo (las sillas ocupan el resto de los 2,6 m).
  */
 export const ROOM = {
-  length: 20, width: 9.6, height: 3.6,
+  // largo: la pared acanalada queda 1,2 m detrás de las últimas mesas: plantitas contra la pared y ~0,75 m de paso detrás de la
+  // mesa (sin ese paso, los de las sillas contra la pared derecha quedarían encerrados)
+  length: 15.5, width: 9.6, height: 3.6,
   aisleZ: (RIGHT_ZC - DESK_DEPTH / 2 + LEFT_ZC + DESK_DEPTH / 2) / 2,
   aisleHalf: 0.45,
   deskGap: DESK_GAP,
 } as const;
 /** La puerta de entrada (pared x = 0): va de z = -DOOR.halfWidth a +halfWidth. `inX` = umbral de adentro, `outX` = afuera (ahí aparecen/desaparecen), `laneZ` = por dónde cruzan. */
 export const DOOR = { halfWidth: 1.0, inX: 0.45, outX: -0.5, laneZ: 0.55 } as const;
+/**
+ * Hueco de piso a techo en la pared IZQUIERDA (z = -width/2), donde terminan las mesas: separación hacia otra sala. Es solo visual:
+ * nadie sale por ahí (los personajes y el recorrido llegan como mucho al umbral, `inZ`). Va de x0 a x1, con jambas.
+ */
+export const SIDE_DOOR = { x0: 13.2, x1: 14.45, wallZ: -4.8, inZ: -4.8 + 0.45 } as const;
 /** Altura del asiento de las sillas y los bancos. */
 export const SEAT_HEIGHT = 0.46;
 /** Lo único que puede estar dentro de la franja del pasillo. */
@@ -49,8 +56,9 @@ const DESK_LEN = 2.8;      // largo de la isla (a lo largo del salón): 2 puesto
 const CHAIR_OFF = 0.55;    // del borde de la mesa al centro de la silla
 const ISLAND_X0 = [4.5, 11.5];
 const CAB_DEPTH = 0.6;     // mueble de plantas (a lo largo de x)
-const COLUMN_X = [2.6, 9.4, 16.2];
-const LOUNGE_X = [9.15, 17.2];
+const COLUMN_X = [2.6, 9.4];
+/** Descansos del pasillo: uno entre la entrada y las primeras islas, otro entre las dos filas de islas. */
+const LOUNGE_X = [2.2, 9.15];
 
 export interface OfficeLayout {
   room: typeof ROOM;
@@ -118,18 +126,24 @@ export function officeLayout(): OfficeLayout {
     }
   }
 
-  // Plantas medianas en las 4 esquinas, pegadas al rincón (no tapan columnas ni el fondo acanalado).
-  for (const x of [0.4, ROOM.length - 0.4]) for (const wall of [-1, 1]) {
-    props.push({ kind: 'plant', x, z: wall * (ROOM.width / 2 - 0.4), w: 0.6, d: 0.6, rot: 0, size: 0.8 });
+  // Plantas medianas en las 4 esquinas, pegadas al rincón (no tapan columnas, el fondo acanalado ni el hueco de la pared izquierda).
+  for (const wall of [-1, 1]) {
+    props.push({ kind: 'plant', x: 0.4, z: wall * (ROOM.width / 2 - 0.4), w: 0.6, d: 0.6, rot: 0, size: 0.8 });
+    // las del fondo, un poco más chicas: no tapan el paso de atrás de las mesas
+    props.push({ kind: 'plant', x: ROOM.length - 0.27, z: wall * (ROOM.width / 2 - 0.35), w: 0.5, d: 0.5, rot: 0, size: 0.6 });
+  }
+  // Plantas medianas en la franja de atrás de las islas del fondo, contra la pared acanalada (2 por isla).
+  // Van pegadas a la pared para dejar el paso entre la punta de la mesa y las macetas.
+  const backX = ROOM.length - 0.25;
+  for (const isl of islands.filter(i => i.x0 === ISLAND_X0[ISLAND_X0.length - 1])) {
+    for (const dz of [-0.45, 0.45]) props.push({ kind: 'plant', x: backX, z: isl.zc + dz, w: 0.4, d: 0.4, rot: 0, size: 0.5 });
   }
 
   // Muchas plantas: entre columnas, contra las paredes (fuera del pasillo).
-  const wallPlants: Array<[number, number]> = [[8.4, 0.75], [15.3, 0.8], [18.2, 0.8]];
+  const wallPlants: Array<[number, number]> = [[8.4, 0.75]];
   for (const [x, size] of wallPlants) for (const wall of [-1, 1]) {
     props.push({ kind: 'plant', x, z: wall * (ROOM.width / 2 - 0.45), w: 0.6, d: 0.6, rot: 0, size });
   }
-  // dos más en el centro del pasillo, al fondo, junto a la pared acanalada
-  props.push({ kind: 'plant', x: 19.4, z: ROOM.aisleZ - 0.9, w: 0.6, d: 0.6, rot: 0, size: 0.8 }, { kind: 'plant', x: 19.4, z: ROOM.aisleZ + 0.9, w: 0.6, d: 0.6, rot: 0, size: 0.9 });
 
   return { room: ROOM, islands, seats, extraSeats, props, lamps };
 }
