@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "noEmit": true,
+    "allowJs": true
+  },
+  "include": ["core", "reader", "office", "shell", "tools"],
+  "exclude": ["node_modules", "relay", "release", "dist"]
+}
