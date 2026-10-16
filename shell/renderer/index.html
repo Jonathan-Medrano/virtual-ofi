@@ -17,7 +17,14 @@
   #list .st { margin-left:auto; color:var(--dim); font-size:12px; }
   #list .st.waiting { color:var(--acc); font-weight:600; }
   #list .empty { color:var(--dim); }
-  #gear { position:fixed; top:12px; right:12px; background:var(--panel); color:var(--txt); border:1px solid var(--line); border-radius:8px; padding:6px 12px; cursor:pointer; font:inherit; }
+  #list.min .row, #list.min .empty { display:none; }
+  #list h2 { display:flex; align-items:center; gap:8px; }
+  #list h2 .cnt { text-transform:none; letter-spacing:0; font-weight:400; }
+  #list h2 button { margin-left:auto; background:none; border:0; color:var(--dim); cursor:pointer; font:inherit; font-size:12px; padding:0 2px; }
+  #bar { position:fixed; top:12px; right:12px; display:flex; gap:8px; }
+  #bar button { background:var(--panel); color:var(--txt); border:1px solid var(--line); border-radius:8px; padding:6px 12px; cursor:pointer; font:inherit; }
+  #bar button.on { background:var(--acc); color:#1a1208; border-color:var(--acc); font-weight:600; }
+  #gear { background:var(--panel); color:var(--txt); border:1px solid var(--line); border-radius:8px; padding:6px 12px; cursor:pointer; font:inherit; }
   #setup { position:fixed; inset:0; background:#000a; display:none; align-items:center; justify-content:center; }
   #setup.on { display:flex; }
   #setup .card { width:min(520px, 94vw); max-height:92vh; overflow:auto; background:#1b1f24; border:1px solid var(--line); border-radius:12px; padding:20px 22px; }
@@ -38,8 +45,8 @@
 </head>
 <body>
 <canvas id="ofi"></canvas>
-<div id="list"><h2>Sesiones</h2><div id="rows"><div class="empty">Buscando sesiones...</div></div></div>
-<button id="gear" title="Ajustes">Ajustes</button>
+<div id="list"><h2>Sesiones <span class="cnt" id="cnt"></span><button id="hide" title="Ocultar o mostrar el listado">ocultar</button></h2><div id="rows"><div class="empty">Buscando sesiones...</div></div></div>
+<div id="bar"><button id="demo" title="Ver la oficina con sesiones de ejemplo">Demo</button><button id="gear" title="Ajustes">Ajustes</button></div>
 <div id="setup">
   <div class="card">
     <h1 id="setup-title">Bienvenido a la oficina</h1>

@@ -153,6 +153,8 @@ export interface CharacterOptions {
   seat?: Seat;
   /** 'door' = entra caminando (por defecto); 'seat' = aparece ya en su lugar; 'lane' = ya paseando por el pasillo. */
   start?: 'seat' | 'door' | 'lane';
+  /** Color de la remera (0xrrggbb); si falta, el de la paleta por cuenta. */
+  shirt?: number;
 }
 
 const tmpM = new THREE.Matrix4(), tmpR = new THREE.Matrix4(), tmpV = new THREE.Vector3();
@@ -166,7 +168,7 @@ function seedOf(id: string): number {
 
 export function createCharacter(snap: SessionSnapshot, opts: CharacterOptions = {}): Character {
   const seed = seedOf(snap.id);
-  const rig = buildRig(accountColor(snap.account));
+  const rig = buildRig(opts.shirt ?? accountColor(snap.account));
   const body = new THREE.Mesh(rig.geo, MAT);
   body.name = 'personaje';
   const root = new THREE.Group();
@@ -286,7 +288,7 @@ export interface Crowd {
  * puerta; 'settled' los pone directo en su lugar, para capturas). Una sesión que desaparece de la lista se trata como
  * `closed` (se va caminando). Una sesión `closed` que todavía no tenía personaje no se crea.
  */
-export function createCrowd(parent: THREE.Object3D, seats: Seat[], extraSeats: Seat[], opts: { start?: 'door' | 'settled' } = {}): Crowd {
+export function createCrowd(parent: THREE.Object3D, seats: Seat[], extraSeats: Seat[], opts: { start?: 'door' | 'settled'; shirtOf?: (account: string) => number | undefined } = {}): Crowd {
   const chars = new Map<string, Character>();
   let assigned = new Map<string, Seat>();
   return {
@@ -300,7 +302,7 @@ export function createCrowd(parent: THREE.Object3D, seats: Seat[], extraSeats: S
         if (!c) {
           if (s.status === 'closed' || !seat) continue;
           const start = opts.start === 'settled' ? (s.status === 'idle' ? 'lane' : 'seat') : 'door';
-          c = createCharacter(s, { seat, start });
+          c = createCharacter(s, { seat, start, shirt: opts.shirtOf?.(s.account) });
           chars.set(s.id, c);
           parent.add(c.mesh);
         }

@@ -1,39 +1,83 @@
-// Renderer: monta la oficina (office/) y muestra las sesiones. Mientras la Task 8 (personajes) no esté integrada,
-// las sesiones se ven en el listado de texto de la esquina.
+// Renderer: monta la oficina (office/) con un personaje por sesión y un panel liviano con el listado de texto.
+// Modo Demo (botón "Demo" o ?demo): en vez de las sesiones reales usa el simulador de la oficina (createDemoFeed).
 import * as THREE from 'three'
 import { buildOffice, createOfficeCamera } from '../../office/src/index'
+import { createCrowd, accountColor, type Crowd } from '../../office/src/character'
+import { createDemoFeed, type DemoFeed } from '../../office/src/demo'
+import type { SessionSnapshot } from '../../core/identity'
 import type { SessionsPayload } from '../api'
+import { panelRows, countLine, hexToInt, statusEs } from './panel'
 import { initSetup } from './setup'
 
 const canvas = document.getElementById('ofi') as HTMLCanvasElement
+const listEl = document.getElementById('list')!
 const rows = document.getElementById('rows')!
+const cnt = document.getElementById('cnt')!
+const hideBtn = document.getElementById('hide')!
+const demoBtn = document.getElementById('demo')!
 
-const STATUS_ES: Record<string, string> = { working: 'trabajando', waiting: 'esperando', idle: 'libre', closed: 'cerrada' }
+const store = {
+  get(k: string) { try { return localStorage.getItem(k) } catch { return null } },
+  set(k: string, v: string) { try { localStorage.setItem(k, v) } catch { /* sin almacenamiento: no se recuerda */ } },
+}
 
-function renderList(p: SessionsPayload) {
+let real: SessionsPayload = { sessions: [], colors: {} }
+let demoOn = new URLSearchParams(location.search).has('demo')
+let demoFeed: DemoFeed | null = null
+let demoSnaps: SessionSnapshot[] = []
+let crowd: Crowd | null = null
+let colors: Record<string, string> = {}
+
+const hex = (n: number) => '#' + n.toString(16).padStart(6, '0')
+const current = (): SessionSnapshot[] => (demoOn ? demoSnaps : real.sessions)
+
+function renderList() {
+  const sessions = current()
   rows.textContent = ''
-  if (!p.sessions.length) {
+  cnt.textContent = '· ' + countLine(sessions)
+  const list = panelRows(sessions)
+  if (!list.length) {
     const d = document.createElement('div')
     d.className = 'empty'
-    d.textContent = 'No hay sesiones activas.'
+    d.textContent = demoOn ? 'Demo: esperando sesiones de ejemplo...' : 'No hay sesiones activas.'
     rows.append(d)
     return
   }
-  for (const s of p.sessions.filter(x => x.status !== 'closed')) {
+  for (const s of list) {
     const r = document.createElement('div')
     r.className = 'row'
     const dot = document.createElement('span')
     dot.className = 'dot'
-    dot.style.background = p.colors[s.account] ?? '#888'
+    dot.style.background = colors[s.account] ?? hex(accountColor(s.account))
     const name = document.createElement('span')
-    name.textContent = `${s.project} · ${s.pc}`
+    name.textContent = s.text
     const st = document.createElement('span')
     st.className = 'st ' + s.status
-    st.textContent = STATUS_ES[s.status] ?? s.status
+    st.textContent = statusEs(s.status)
     r.title = s.account
     r.append(dot, name, st)
     rows.append(r)
   }
+}
+
+function apply() {
+  colors = demoOn ? {} : real.colors
+  crowd?.sync(current())
+  renderList()
+}
+
+function setDemo(on: boolean) {
+  demoOn = on
+  demoBtn.classList.toggle('on', on)
+  demoBtn.textContent = on ? 'Demo (activa)' : 'Demo'
+  if (on) { demoFeed = createDemoFeed(); demoSnaps = demoFeed.tick() } else { demoFeed = null; demoSnaps = [] }
+  apply()
+}
+
+function setHidden(h: boolean) {
+  listEl.classList.toggle('min', h)
+  hideBtn.textContent = h ? 'mostrar' : 'ocultar'
+  store.set('ofi.listHidden', h ? '1' : '0')
 }
 
 function mountOffice() {
@@ -44,7 +88,8 @@ function mountOffice() {
   scene.background = new THREE.Color(0x15171a)
   const office = buildOffice()
   scene.add(office.group)
-  const cam = createOfficeCamera(canvas, { preset: 'entrada' })
+  crowd = createCrowd(scene, office.seats, office.extraSeats, { shirtOf: a => hexToInt(colors[a]) })
+  const cam = createOfficeCamera(canvas, { preset: 'alto' })
   const resize = () => {
     renderer.setSize(canvas.clientWidth, canvas.clientHeight, false)
     cam.camera.aspect = canvas.clientWidth / Math.max(1, canvas.clientHeight)
@@ -52,12 +97,16 @@ function mountOffice() {
   }
   window.addEventListener('resize', resize)
   resize()
-  // TODO (Task 8): al llegar sesiones, assignSeats(office.seats, ids) y createCharacter(...) por sesión; mover/quitar
-  // personajes según el estado. Hoy `office.seats` está disponible pero no se pobló ningún personaje.
-  let last = performance.now()
+  let last = performance.now(), feedAcc = 0
   const frame = (now: number) => {
-    cam.update(Math.min(0.1, (now - last) / 1000))
+    const dt = Math.min(0.1, (now - last) / 1000)
     last = now
+    if (demoOn && demoFeed) {
+      feedAcc += dt
+      if (feedAcc >= 1) { feedAcc = 0; demoSnaps = demoFeed.tick(); apply() }
+    }
+    crowd!.update(dt)
+    cam.update(dt)
     renderer.render(scene, cam.camera)
     requestAnimationFrame(frame)
   }
@@ -67,7 +116,11 @@ function mountOffice() {
 try {
   mountOffice()
 } catch {
-  // Sin WebGL el listado igual funciona.
+  crowd = null // sin WebGL el listado igual funciona
 }
-window.ofi.onSessions(renderList)
+hideBtn.addEventListener('click', () => setHidden(!listEl.classList.contains('min')))
+demoBtn.addEventListener('click', () => setDemo(!demoOn))
+setHidden(store.get('ofi.listHidden') === '1')
+if (demoOn) setDemo(true)
+window.ofi.onSessions(p => { real = p; if (!demoOn) apply() })
 void initSetup()

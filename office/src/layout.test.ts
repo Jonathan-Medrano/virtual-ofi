@@ -63,10 +63,10 @@ describe('layout de la oficina', () => {
     // el pasillo libre queda centrado entre las dos filas de mesas
     expect(ROOM.aisleZ).toBeCloseTo(((right[0]!.zc - right[0]!.depth / 2) + (left[0]!.zc + left[0]!.depth / 2)) / 2, 5);
     for (const s of L.seats) expect(Math.abs(s.position.z - ROOM.aisleZ), `asiento ${s.id}`).toBeGreaterThanOrEqual(ROOM.aisleHalf + 0.3 - 1e-9);
-    // en el pasillo solo puede haber plantas y sillones
+    // en el pasillo solo puede haber plantas y bancos
     const intruders = L.props.filter(p => inAisle(p) && !AISLE_PROP_KINDS.includes(p.kind));
     expect(intruders).toEqual([]);
-    // y sí hay plantas y sillones en el centro
+    // y sí hay plantas y bancos en el centro
     expect(L.props.some(p => inAisle(p) && p.kind === 'bench')).toBe(true);
     expect(L.props.some(p => inAisle(p) && (p.kind === 'planter' || p.kind === 'plant'))).toBe(true);
   });
@@ -94,7 +94,7 @@ describe('layout de la oficina', () => {
         expect(blockers).toEqual([]);
       }
     }
-    // nada de sillones con respaldo en el pasillo
+    // nada de muebles con respaldo en el pasillo
     expect(L.props.some(p => (p.kind as string) === 'sofa' || (p.kind as string) === 'armchair')).toBe(false);
   });
 

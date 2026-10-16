@@ -1,5 +1,5 @@
 // Plano de la oficina: puro (sin three), testeable. Todas las medidas en metros (1 unidad = 1 m).
-// Ejes: x a lo largo del salón (0 = entrada, ROOM.length = pared de fondo acanalada), z a lo ancho (centro del pasillo = 0),
+// Ejes: x a lo largo del salón (0 = entrada, ROOM.length = pared de fondo acanalada), z a lo ancho (el eje del pasillo es ROOM.aisleZ, no 0),
 // y arriba (piso = 0). Las islas van pegadas a las paredes laterales (z < 0 y z > 0), con el mueble de plantas del lado de la
 // entrada, y el pasillo largo queda entre las dos filas: |z - aisleZ| < aisleHalf. El salón NO es simétrico: las islas de la
 // izquierda (z < 0, vistas desde la entrada) están corridas hacia el centro para que entre las dos filas de mesas queden 2,6 m
@@ -12,7 +12,7 @@ export interface Vec3 { x: number; y: number; z: number }
  * - `position`: punto en el PISO (y = 0) donde está la silla o el lugar; la altura del asiento es `SEAT_HEIGHT`.
  * - `facing`: giro en Y (radianes) para que el frente del personaje (+z local, como los modelos voxel de la fábrica) mire a su
  *   escritorio/monitor: el frente queda apuntando a (sin(facing), 0, cos(facing)). Para usarlo: `obj.rotation.y = seat.facing`.
- * - `island`: 0..3 para los puestos de las islas; -1 para los lugares extra (sillones del pasillo).
+ * - `island`: 0..3 para los puestos de las islas; -1 para los lugares extra (bancos del pasillo).
  */
 export interface Seat { id: number; position: Vec3; facing: number; island: number }
 
@@ -38,7 +38,9 @@ export const ROOM = {
   aisleHalf: 0.45,
   deskGap: DESK_GAP,
 } as const;
-/** Altura del asiento de las sillas y sillones. */
+/** La puerta de entrada (pared x = 0): va de z = -DOOR.halfWidth a +halfWidth. `inX` = umbral de adentro, `outX` = afuera (ahí aparecen/desaparecen), `laneZ` = por dónde cruzan. */
+export const DOOR = { halfWidth: 1.0, inX: 0.45, outX: -0.5, laneZ: 0.55 } as const;
+/** Altura del asiento de las sillas y los bancos. */
 export const SEAT_HEIGHT = 0.46;
 /** Lo único que puede estar dentro de la franja del pasillo. */
 export const AISLE_PROP_KINDS: readonly PropKind[] = ['plant', 'planter', 'bench'];
@@ -122,7 +124,7 @@ export function officeLayout(): OfficeLayout {
   }
 
   // Muchas plantas: entre columnas, contra las paredes (fuera del pasillo).
-  const wallPlants: Array<[number, number]> = [[8.4, 0.75], [15.1, 0.8], [18.2, 0.8]];
+  const wallPlants: Array<[number, number]> = [[8.4, 0.75], [15.3, 0.8], [18.2, 0.8]];
   for (const [x, size] of wallPlants) for (const wall of [-1, 1]) {
     props.push({ kind: 'plant', x, z: wall * (ROOM.width / 2 - 0.45), w: 0.6, d: 0.6, rot: 0, size });
   }

@@ -8,7 +8,7 @@
 //   "tira del hilo" (string pulling) con chequeo continuo contra los mismos rectángulos que usa el test. Así no se cruzan
 //   muebles aunque cambie el plano. Solo se planifica al decidir (llegar a un punto, cambiar de estado), nunca por frame.
 import type { SessionStatus } from '../../core/state';
-import { officeLayout, ROOM, type Prop, type Seat } from './layout';
+import { officeLayout, ROOM, DOOR, type Prop, type Seat } from './layout';
 
 export type BehaviorState = 'seated' | 'beckoning' | 'walking' | 'leaving';
 
@@ -17,9 +17,9 @@ export const CHAR_RADIUS = 0.2;
 export const WALK_SPEED = 1.1;          // m/s
 /** Distancia mínima entre dos que caminan en fila. */
 export const FOLLOW_GAP = 0.55;
-const DOOR_Z = 0.55;                     // por dónde atraviesan la puerta (que va de z = -1 a 1)
-const DOOR_IN_X = 0.45;                  // umbral de adentro
-export const DOOR_OUT_X = -0.5;          // afuera: ahí desaparecen / de ahí entran
+const DOOR_Z = DOOR.laneZ;                // por dónde atraviesan la puerta (que va de z = -1 a 1)
+const DOOR_IN_X = DOOR.inX;              // umbral de adentro
+export const DOOR_OUT_X = DOOR.outX;     // afuera: ahí desaparecen / de ahí entran
 const CELL = 0.1;
 const GRID_PAD = 0.02;                   // la grilla infla un poco más que el chequeo continuo (pasos angostos de 0,5 m siguen pasando)
 const LOS_PAD = 0.01;
