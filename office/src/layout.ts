@@ -1,7 +1,9 @@
 // Plano de la oficina: puro (sin three), testeable. Todas las medidas en metros (1 unidad = 1 m).
 // Ejes: x a lo largo del salón (0 = entrada, ROOM.length = pared de fondo acanalada), z a lo ancho (centro del pasillo = 0),
 // y arriba (piso = 0). Las islas van pegadas a las paredes laterales (z < 0 y z > 0), con el mueble de plantas del lado de la
-// entrada, y el pasillo largo queda en el medio: |z| < aisleHalf.
+// entrada, y el pasillo largo queda entre las dos filas: |z - aisleZ| < aisleHalf. El salón NO es simétrico: las islas de la
+// izquierda (z < 0, vistas desde la entrada) están corridas hacia el centro para que entre las dos filas de mesas queden 2,6 m
+// (medida del usuario: "entran de pedo 3,5 personas a lo ancho"); del lado de la pared izquierda queda una franja libre.
 
 export interface Vec3 { x: number; y: number; z: number }
 
@@ -22,16 +24,27 @@ export interface Prop { kind: PropKind; x: number; z: number; w: number; d: numb
 /** Isla de 4 puestos: mesa doble (dos escritorios espalda con espalda) entre x0 y x1, centrada en zc, pegada a la pared `wall`. */
 export interface Island { id: number; wall: -1 | 1; x0: number; x1: number; zc: number; depth: number }
 
-export const ROOM = { length: 20, width: 9.6, height: 3.6, aisleHalf: 1.4 } as const;
+const DESK_DEPTH = 1.5;    // dos escritorios de 0,75 m espalda con espalda
+const RIGHT_ZC = 3.1;      // centro de las islas de la derecha (contra la pared z > 0): no se mueven
+const DESK_GAP = 2.6;      // libre entre bordes de mesa de las dos filas
+const LEFT_ZC = RIGHT_ZC - DESK_DEPTH - DESK_GAP;   // -1,0: islas de la izquierda
+/**
+ * Medidas del salón. `aisleZ` = eje del pasillo (a mitad entre las dos filas de mesas); `aisleHalf` = media franja libre para
+ * caminar entre los respaldos de las sillas del lado del pasillo (las sillas ocupan el resto de los 2,6 m).
+ */
+export const ROOM = {
+  length: 20, width: 9.6, height: 3.6,
+  aisleZ: (RIGHT_ZC - DESK_DEPTH / 2 + LEFT_ZC + DESK_DEPTH / 2) / 2,
+  aisleHalf: 0.45,
+  deskGap: DESK_GAP,
+} as const;
 /** Altura del asiento de las sillas y sillones. */
 export const SEAT_HEIGHT = 0.46;
 /** Lo único que puede estar dentro de la franja del pasillo. */
 export const AISLE_PROP_KINDS: readonly PropKind[] = ['plant', 'planter', 'bench'];
 
 const DESK_LEN = 2.8;      // largo de la isla (a lo largo del salón): 2 puestos de 1,4 m por lado
-const DESK_DEPTH = 1.5;    // dos escritorios de 0,75 m espalda con espalda
 const CHAIR_OFF = 0.55;    // del borde de la mesa al centro de la silla
-const ISLAND_ZC = 3.1;     // centro de las islas respecto del eje del pasillo
 const ISLAND_X0 = [4.5, 11.5];
 const CAB_DEPTH = 0.6;     // mueble de plantas (a lo largo de x)
 const COLUMN_X = [2.6, 9.4, 16.2];
@@ -58,7 +71,7 @@ export function officeLayout(): OfficeLayout {
   for (const wall of [-1, 1] as const) {
     for (const x0 of ISLAND_X0) {
       const id = islands.length;
-      const zc = wall * ISLAND_ZC;
+      const zc = wall > 0 ? RIGHT_ZC : LEFT_ZC;
       const isl: Island = { id, wall, x0, x1: x0 + DESK_LEN, zc, depth: DESK_DEPTH };
       islands.push(isl);
       const xc = x0 + DESK_LEN / 2;
@@ -77,7 +90,8 @@ export function officeLayout(): OfficeLayout {
         }
       }
       // lámpara colgante sobre el centro de cada isla y otra sobre el borde del pasillo
-      lamps.push({ x: xc - 0.7, y: 2.45, z: zc * 0.62 }, { x: xc + 0.7, y: 2.45, z: zc * 0.62 });
+      const lz = zc - wall * 0.5;   // sobre la mitad de la mesa que da al pasillo
+      lamps.push({ x: xc - 0.7, y: 2.45, z: lz }, { x: xc + 0.7, y: 2.45, z: lz });
     }
   }
 
@@ -92,11 +106,11 @@ export function officeLayout(): OfficeLayout {
   // islas (no hay sillas al lado) y dejan ≥ 0,8 m libres más allá de la punta de cada banco para pasar.
   const PLANTER = 0.7, BENCH_LEN = 1.0, BENCH_D = 0.42, GAP = 0.08;
   for (const xc of LOUNGE_X) {
-    props.push({ kind: 'planter', x: xc, z: 0, w: PLANTER, d: PLANTER, rot: 0 });
+    props.push({ kind: 'planter', x: xc, z: ROOM.aisleZ, w: PLANTER, d: PLANTER, rot: 0 });
     for (const side of [-1, 1]) {
-      const bz = side * (PLANTER / 2 + GAP + BENCH_LEN / 2);
+      const bz = ROOM.aisleZ + side * (PLANTER / 2 + GAP + BENCH_LEN / 2);
       props.push({ kind: 'bench', x: xc, z: bz, w: BENCH_D, d: BENCH_LEN, rot: Math.PI / 2, seats: 2 });
-      for (const dz of [-0.4, 0.4]) {
+      for (const dz of [-0.41, 0.41]) {
         extraSeats.push({ id: 16 + extraSeats.length, position: { x: xc, y: 0, z: bz + dz }, facing: -Math.PI / 2, island: -1 });
       }
     }
@@ -113,7 +127,7 @@ export function officeLayout(): OfficeLayout {
     props.push({ kind: 'plant', x, z: wall * (ROOM.width / 2 - 0.45), w: 0.6, d: 0.6, rot: 0, size });
   }
   // dos más en el centro del pasillo, al fondo, junto a la pared acanalada
-  props.push({ kind: 'plant', x: 19.4, z: -0.9, w: 0.6, d: 0.6, rot: 0, size: 0.8 }, { kind: 'plant', x: 19.4, z: 0.9, w: 0.6, d: 0.6, rot: 0, size: 0.9 });
+  props.push({ kind: 'plant', x: 19.4, z: ROOM.aisleZ - 0.9, w: 0.6, d: 0.6, rot: 0, size: 0.8 }, { kind: 'plant', x: 19.4, z: ROOM.aisleZ + 0.9, w: 0.6, d: 0.6, rot: 0, size: 0.9 });
 
   return { room: ROOM, islands, seats, extraSeats, props, lamps };
 }

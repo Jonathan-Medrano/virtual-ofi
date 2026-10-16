@@ -4,8 +4,10 @@ import { officeLayout, ROOM, AISLE_PROP_KINDS, type Prop } from './layout';
 const L = officeLayout();
 const all = [...L.seats, ...L.extraSeats];
 
-/** ¿El rectángulo del mueble (centro x,z; medidas w en x, d en z) pisa la franja del pasillo |z| < aisleHalf? */
-const inAisle = (p: Prop) => p.z - p.d / 2 < ROOM.aisleHalf && p.z + p.d / 2 > -ROOM.aisleHalf;
+/** Ancho libre entre los bordes de mesa de las dos filas de islas (lo midió el usuario: "entran de pedo 3,5 personas"). */
+const DESK_GAP = 2.6;
+/** ¿El rectángulo del mueble (centro x,z; medidas w en x, d en z) pisa la franja libre del pasillo |z - aisleZ| < aisleHalf? */
+const inAisle = (p: Prop) => p.z - p.d / 2 < ROOM.aisleZ + ROOM.aisleHalf && p.z + p.d / 2 > ROOM.aisleZ - ROOM.aisleHalf;
 
 describe('layout de la oficina', () => {
   it('has_16_seats_in_4_islands', () => {
@@ -54,15 +56,19 @@ describe('layout de la oficina', () => {
 
   it('aisle_is_clear', () => {
     // ningún puesto de isla en la franja del pasillo
-    for (const s of L.seats) expect(Math.abs(s.position.z), `asiento ${s.id}`).toBeGreaterThanOrEqual(ROOM.aisleHalf + 0.3);
+    const left = L.islands.filter(i => i.wall === -1), right = L.islands.filter(i => i.wall === 1);
+    // las islas de la derecha (z > 0) no se movieron; las de la izquierda se acercaron hasta dejar 2,6 m entre bordes de mesa
+    for (const r of right) expect(r.zc).toBeCloseTo(3.1, 5);
+    for (const l of left) for (const r of right) expect((r.zc - r.depth / 2) - (l.zc + l.depth / 2)).toBeCloseTo(DESK_GAP, 5);
+    // el pasillo libre queda centrado entre las dos filas de mesas
+    expect(ROOM.aisleZ).toBeCloseTo(((right[0]!.zc - right[0]!.depth / 2) + (left[0]!.zc + left[0]!.depth / 2)) / 2, 5);
+    for (const s of L.seats) expect(Math.abs(s.position.z - ROOM.aisleZ), `asiento ${s.id}`).toBeGreaterThanOrEqual(ROOM.aisleHalf + 0.3 - 1e-9);
     // en el pasillo solo puede haber plantas y sillones
     const intruders = L.props.filter(p => inAisle(p) && !AISLE_PROP_KINDS.includes(p.kind));
     expect(intruders).toEqual([]);
     // y sí hay plantas y sillones en el centro
     expect(L.props.some(p => inAisle(p) && p.kind === 'bench')).toBe(true);
     expect(L.props.some(p => inAisle(p) && (p.kind === 'planter' || p.kind === 'plant'))).toBe(true);
-    // los lugares extra de los sillones caen en el pasillo
-    expect(L.extraSeats.every(s => Math.abs(s.position.z) < ROOM.aisleHalf)).toBe(true);
   });
 
   it('aisle_benches_flank_the_planter_and_leave_room_to_walk', () => {
@@ -81,9 +87,10 @@ describe('layout de la oficina', () => {
         const on = L.extraSeats.filter(s => Math.abs(s.position.x - b.x) < b.w / 2 && Math.abs(s.position.z - b.z) < b.d / 2);
         expect(on).toHaveLength(2);
         // para pasar: ≥ 0,8 m libres entre la punta del banco y cualquier otro mueble en esa franja de x
-        const end = Math.abs(b.z) + b.d / 2;
-        const blockers = L.props.filter(p => p !== b && Math.abs(p.x - b.x) < (p.w + b.w) / 2 && Math.sign(p.z) === Math.sign(b.z)
-          && Math.abs(p.z) - p.d / 2 < end + 0.8 && Math.abs(p.z) + p.d / 2 > end);
+        const rel = (z: number) => z - ROOM.aisleZ;
+        const end = Math.abs(rel(b.z)) + b.d / 2;
+        const blockers = L.props.filter(p => p !== b && Math.abs(p.x - b.x) < (p.w + b.w) / 2 && Math.sign(rel(p.z)) === Math.sign(rel(b.z))
+          && Math.abs(rel(p.z)) - p.d / 2 < end + 0.8 && Math.abs(rel(p.z)) + p.d / 2 > end);
         expect(blockers).toEqual([]);
       }
     }

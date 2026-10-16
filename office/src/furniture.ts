@@ -109,19 +109,26 @@ export function chairGeometry(): THREE.BufferGeometry {
   });
 }
 
-/** Mueble delante de cada mesa: abajo madera con 3 puertas, arriba tapa gris con 3 huecos con plantas chicas. Frente a +z. */
+/** Mueble delante de cada mesa: abajo madera con 2 puertas corredizas, arriba tapa gris con 3 huecos con plantas chicas. Frente a +z. */
 export function cabinetGeometry(seed = 1): THREE.BufferGeometry {
   return bake(g => {
     const W = 12, D = 5;
     g.box(-W + 1, 0, -D + 1, W - 1, 1, D - 1, PAL.black);         // zócalo / ruedas
-    g.box(-W, 1, -D, W, 12, D, PAL.wood);
-    // juntas de las 3 puertas y manijas (en el frente y atrás)
-    for (const zf of [D - 1, -D]) {
-      for (const x of [-4, 4]) g.box(x, 1, zf, x + 1, 12, zf + 1, PAL.woodD);
-      for (const x of [-6, 2, 9]) g.box(x, 9, zf, x + 1, 10, zf + 1, PAL.black);
-      // vetas horizontales del roble (un solo tono, cerca del base: se lee madera sin hacer ruido)
-      for (const y of [4, 8]) for (let x = -W; x < W; x++) if (x !== -4 && x !== 4) g.dot(x, y, zf, PAL.woodD);
+    // cuerpo de roble claro: el frente (+z) queda en z = D - 1 y lo tapan 2 PUERTAS CORREDIZAS (sin cajones)
+    g.box(-W, 1, -D, W, 12, D - 1, PAL.wood);
+    // hoja izquierda: un voxel por delante de la derecha (corre por el riel de adelante)
+    g.box(-W + 1, 2, D - 1, 1, 11, D, PAL.wood);
+    // riel: línea fina abajo y arriba a todo el ancho del frente
+    for (const y of [1, 11]) g.box(-W, y, D - 2, W, y + 1, D - 1, PAL.woodD);
+    // vetas horizontales continuas (mismo tono en las dos hojas y atrás)
+    for (const y of [4, 8]) {
+      for (let x = -W + 1; x < 1; x++) g.dot(x, y, D - 1, PAL.woodD);
+      for (let x = 1; x < W; x++) g.dot(x, y, D - 2, PAL.woodD);
+      for (let x = -W; x < W; x++) g.dot(x, y, -D, PAL.woodD);
     }
+    // tirador chico (hendidura) cerca del borde exterior de cada hoja
+    g.box(-W + 2, 6, D - 1, -W + 3, 8, D, PAL.black);
+    g.box(W - 3, 6, D - 2, W - 2, 8, D - 1, PAL.black);
     // tapa gris gruesa
     g.box(-W, 12, -D, W, 15, D, PAL.grey);
     // 3 huecos con tierra y planta

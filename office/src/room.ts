@@ -93,12 +93,12 @@ function shellParts(L: OfficeLayout): THREE.BufferGeometry[] {
     for (let u = a0 + 0.1; u < a1; u += 0.3) b(u, TY, c - 0.17, u + 0.03, TY + 0.015, c + 0.17);
     for (let u = a0 + 0.6; u < a1; u += 1.5) for (const v of [c - 0.17, c + 0.15]) b(u, TY + 0.06, v, u + 0.015, H - 0.32, v + 0.015);
   };
-  tray(true, 0.2, X - 0.2, 0);
+  tray(true, 0.2, X - 0.2, ROOM.aisleZ);   // bandeja principal sobre el pasillo
   for (const x of [2.6, 9.4, 16.2]) tray(false, -hw + 0.2, hw - 0.2, x);
   // cables negros sobre la bandeja central
-  add(0.2, TY + 0.015, -0.08, X - 0.2, TY + 0.05, 0.02, PAL.black2);
+  add(0.2, TY + 0.015, ROOM.aisleZ - 0.08, X - 0.2, TY + 0.05, ROOM.aisleZ + 0.02, PAL.black2);
   // spots sobre dos rieles a lo largo del salón
-  for (const z of [-1.9, 1.9]) {
+  for (const z of [ROOM.aisleZ - 1.9, ROOM.aisleZ + 1.9]) {
     add(0.3, H - 0.06, z - 0.02, X - 0.3, H - 0.03, z + 0.02, PAL.black);
     for (let x = 1.2; x < X; x += 1.8) {
       add(x - 0.05, H - 0.2, z - 0.05, x + 0.05, H - 0.06, z + 0.05, PAL.black);
@@ -135,7 +135,7 @@ function furnitureParts(L: OfficeLayout): THREE.BufferGeometry[] {
 }
 
 /**
- * Piso de madera clara (roble/pino muy claro, más blanco que amarillo), casi mate: tablones a lo largo del salón con juntas
+ * Piso de madera clara (roble/pino muy claro, más blanco que amarillo), casi mate: tablones de lado a lado del salón con juntas
  * finas y 3 tonos muy cercanos (se lee madera sin hacer ruido) + sombra de contacto suave bajo los muebles. Pedido del usuario:
  * reemplaza al piso gris pulido de las fotos. Tiene que quedar más claro que la madera de los muebles para que se despeguen.
  */
@@ -148,20 +148,21 @@ function floorTexture(L: OfficeLayout): THREE.Texture | null {
   const ctx = cv.getContext('2d');
   if (!ctx) return null;
   const toPx = (x: number, z: number): [number, number] => [x * PX, (z + W / 2) * PX];
-  const PLANK = 0.16 * PX;                       // ancho del tablón
+  // tablones de lado a lado del salón (a lo ancho, eje z), 0,2 m de ancho, juntas de punta corridas entre tablones
+  const PLANK = 0.2 * PX;
   const rnd = (i: number, j: number) => hash3(i, j, 7);
-  for (let row = 0; row * PLANK < cv.height; row++) {
-    let x = -rnd(row, 0) * 2 * PX;               // juntas de punta corridas entre filas
-    for (let k = 0; x < cv.width; k++) {
-      const len = (1.4 + rnd(row, k + 1) * 1.2) * PX;
-      ctx.fillStyle = FLOOR_TONES[Math.floor(rnd(row, k + 50) * FLOOR_TONES.length)]!;
-      ctx.fillRect(x, row * PLANK, len, PLANK);
-      ctx.fillStyle = 'rgba(150,125,90,0.22)';
-      ctx.fillRect(x, row * PLANK, 1, PLANK);    // junta de punta
-      x += len;
+  for (let col = 0; col * PLANK < cv.width; col++) {
+    let y = -rnd(col, 0) * 2 * PX;
+    for (let k = 0; y < cv.height; k++) {
+      const len = (1.4 + rnd(col, k + 1) * 1.2) * PX;
+      ctx.fillStyle = FLOOR_TONES[Math.floor(rnd(col, k + 50) * FLOOR_TONES.length)]!;
+      ctx.fillRect(col * PLANK, y, PLANK, len);
+      ctx.fillStyle = 'rgba(150,125,90,0.16)';
+      ctx.fillRect(col * PLANK, y, PLANK, 1);    // junta de punta
+      y += len;
     }
-    ctx.fillStyle = 'rgba(150,125,90,0.2)';
-    ctx.fillRect(0, row * PLANK, cv.width, 1);   // junta entre tablones
+    ctx.fillStyle = 'rgba(150,125,90,0.14)';
+    ctx.fillRect(col * PLANK, 0, 1, cv.height);  // junta entre tablones (suave: de lejos no vibra)
   }
   // sombra de contacto suave bajo islas, muebles y bancos
   ctx.filter = 'blur(10px)';
@@ -174,7 +175,7 @@ function floorTexture(L: OfficeLayout): THREE.Texture | null {
   ctx.filter = 'none';
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 4;
+  tex.anisotropy = 8;
   return tex;
 }
 
