@@ -48,7 +48,7 @@ function renderLegend() {
   const counts = { working: 0, waiting: 0, idle: 0 } as Record<string, number>;
   for (const s of snaps) if (s.status in counts) counts[s.status]!++;
   legend.innerHTML =
-    accounts.map(a => `<span>${sw(ACCOUNT_COLORS[accountColorIndex(a)]!)}${a}</span>`).join('') +
+    accounts.map(a => `<span>${sw(ACCOUNT_COLORS[accountColorIndex(a)]!)}${esc(a)}</span>`).join('') +
     `<span class="sep"></span><span>${counts.working} trabajando</span>` +
     `<span><b class="bang">!</b>${counts.waiting} ${counts.waiting === 1 ? "espera" : "esperan"} tu respuesta</span>` +
     `<span>${counts.idle} paseando</span>`;
