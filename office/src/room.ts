@@ -5,8 +5,8 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { officeLayout, ROOM, type OfficeLayout, type Seat } from './layout';
 import {
-  PAL, armchairGeometry, cabinetGeometry, chairGeometry, columnGeometry, deskGeometry, lampGeometry, planterGeometry,
-  plantGeometry, sofaGeometry,
+  PAL, benchGeometry, cabinetGeometry, chairGeometry, columnGeometry, deskGeometry, lampGeometry, planterGeometry,
+  plantGeometry,
 } from './furniture';
 
 // Brillo horneado por dirección (igual que la grilla voxel de kit3d): +x -x +y -y +z -z.
@@ -114,7 +114,7 @@ function lampParts(L: OfficeLayout): THREE.BufferGeometry[] {
 
 function furnitureParts(L: OfficeLayout): THREE.BufferGeometry[] {
   const out: THREE.BufferGeometry[] = [];
-  const desk = deskGeometry(), chair = chairGeometry(), sofa = sofaGeometry(), arm = armchairGeometry();
+  const desk = deskGeometry(), chair = chairGeometry(), bench = benchGeometry();
   const column = columnGeometry(ROOM.height);
   let seed = 3;
   for (const p of L.props) {
@@ -126,11 +126,10 @@ function furnitureParts(L: OfficeLayout): THREE.BufferGeometry[] {
       case 'column': out.push(place(column, p.x, 0, p.z)); break;
       case 'plant': out.push(place(plantGeometry(p.size ?? 1, seed++), p.x, 0, p.z, seed)); break;
       case 'planter': out.push(place(planterGeometry(seed++), p.x, 0, p.z, seed)); break;
-      case 'sofa': out.push(place(sofa, p.x, 0, p.z, p.rot)); break;
-      case 'armchair': out.push(place(arm, p.x, 0, p.z, p.rot)); break;
+      case 'bench': out.push(place(bench, p.x, 0, p.z, p.rot)); break;
     }
   }
-  for (const g of [desk, chair, sofa, arm, column]) g.dispose();
+  for (const g of [desk, chair, bench, column]) g.dispose();
   return out;
 }
 

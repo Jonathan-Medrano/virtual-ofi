@@ -59,10 +59,25 @@ describe('layout de la oficina', () => {
     const intruders = L.props.filter(p => inAisle(p) && !AISLE_PROP_KINDS.includes(p.kind));
     expect(intruders).toEqual([]);
     // y sí hay plantas y sillones en el centro
-    expect(L.props.some(p => inAisle(p) && (p.kind === 'sofa' || p.kind === 'armchair'))).toBe(true);
+    expect(L.props.some(p => inAisle(p) && p.kind === 'bench')).toBe(true);
     expect(L.props.some(p => inAisle(p) && (p.kind === 'planter' || p.kind === 'plant'))).toBe(true);
     // los lugares extra de los sillones caen en el pasillo
     expect(L.extraSeats.every(s => Math.abs(s.position.z) < ROOM.aisleHalf)).toBe(true);
+  });
+
+  it('aisle_benches_flank_the_planter_and_leave_room_to_walk', () => {
+    const planters = L.props.filter(p => p.kind === 'planter');
+    expect(planters.length).toBeGreaterThan(0);
+    for (const pl of planters) {
+      // un banco sin respaldo a cada lado de la planta, a lo ancho del pasillo (misma x, z a izquierda y derecha)
+      const benches = L.props.filter(p => p.kind === 'bench' && Math.abs(p.x - pl.x) < 0.01);
+      expect(benches).toHaveLength(2);
+      expect(benches.some(b => b.z < pl.z - pl.d / 2) && benches.some(b => b.z > pl.z + pl.d / 2)).toBe(true);
+      // queda al menos 0,5 m libre entre el banco y el borde del pasillo para pasar
+      for (const b of benches) expect(ROOM.aisleHalf - (Math.abs(b.z) + b.d / 2)).toBeGreaterThanOrEqual(0.5);
+    }
+    // nada de sillones con respaldo en el pasillo
+    expect(L.props.some(p => (p.kind as string) === 'sofa' || (p.kind as string) === 'armchair')).toBe(false);
   });
 
   it('seats_face_their_desk', () => {

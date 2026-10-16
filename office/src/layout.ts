@@ -14,7 +14,7 @@ export interface Vec3 { x: number; y: number; z: number }
  */
 export interface Seat { id: number; position: Vec3; facing: number; island: number }
 
-export type PropKind = 'desk' | 'cabinet' | 'chair' | 'column' | 'plant' | 'planter' | 'sofa' | 'armchair';
+export type PropKind = 'desk' | 'cabinet' | 'chair' | 'column' | 'plant' | 'planter' | 'bench';
 
 /** Un mueble en planta: centro (x, z), medidas ya giradas (w a lo largo de x, d a lo largo de z) y giro para el modelo. */
 export interface Prop { kind: PropKind; x: number; z: number; w: number; d: number; rot: number; island?: number; seats?: number; size?: number }
@@ -26,7 +26,7 @@ export const ROOM = { length: 20, width: 9.6, height: 3.6, aisleHalf: 1.4 } as c
 /** Altura del asiento de las sillas y sillones. */
 export const SEAT_HEIGHT = 0.46;
 /** Lo único que puede estar dentro de la franja del pasillo. */
-export const AISLE_PROP_KINDS: readonly PropKind[] = ['plant', 'planter', 'sofa', 'armchair'];
+export const AISLE_PROP_KINDS: readonly PropKind[] = ['plant', 'planter', 'bench'];
 
 const DESK_LEN = 2.8;      // largo de la isla (a lo largo del salón): 2 puestos de 1,4 m por lado
 const DESK_DEPTH = 1.5;    // dos escritorios de 0,75 m espalda con espalda
@@ -86,28 +86,28 @@ export function officeLayout(): OfficeLayout {
     props.push({ kind: 'column', x, z: wall * (ROOM.width / 2 - 0.25), w: 0.6, d: 0.5, rot: 0 });
   }
 
-  // Centro del pasillo: maceta grande entre un sillón doble y dos sillones individuales (lugares extra para sesiones de más).
+  // Centro del pasillo: maceta con una planta mediana y un banco SIN respaldo a cada lado (izquierda y derecha, a lo ancho del
+  // pasillo). Cada banco tiene 2 lugares extra (sesiones de más), sentados mirando hacia afuera. Entre el banco y el borde del
+  // pasillo quedan ≥ 0,5 m para pasar, y estas islas de descanso caen entre las islas de escritorios (no hay sillas al lado).
+  const PLANTER = 0.7, BENCH_W = 1.4, BENCH_D = 0.42, GAP = 0.08;
   for (const xc of LOUNGE_X) {
-    props.push({ kind: 'planter', x: xc, z: 0, w: 0.8, d: 0.8, rot: 0 });
-    // sillón doble del lado del fondo, mirando a la entrada (-x)
-    const sx = xc + 1.15;
-    props.push({ kind: 'sofa', x: sx, z: 0, w: 0.85, d: 1.7, rot: -Math.PI / 2, seats: 2 });
-    for (const z of [-0.42, 0.42]) extraSeats.push({ id: 16 + extraSeats.length, position: { x: sx, y: 0, z }, facing: -Math.PI / 2, island: -1 });
-    // dos sillones individuales del lado de la entrada, mirando al fondo (+x)
-    const ax = xc - 1.15;
-    for (const z of [-0.5, 0.5]) {
-      props.push({ kind: 'armchair', x: ax, z, w: 0.8, d: 0.8, rot: Math.PI / 2, seats: 1 });
-      extraSeats.push({ id: 16 + extraSeats.length, position: { x: ax, y: 0, z }, facing: Math.PI / 2, island: -1 });
+    props.push({ kind: 'planter', x: xc, z: 0, w: PLANTER, d: PLANTER, rot: 0 });
+    for (const side of [-1, 1]) {
+      const bz = side * (PLANTER / 2 + GAP + BENCH_D / 2);
+      props.push({ kind: 'bench', x: xc, z: bz, w: BENCH_W, d: BENCH_D, rot: 0, seats: 2 });
+      for (const dx of [-0.42, 0.42]) {
+        extraSeats.push({ id: 16 + extraSeats.length, position: { x: xc + dx, y: 0, z: bz }, facing: side > 0 ? 0 : Math.PI, island: -1 });
+      }
     }
   }
 
   // Muchas plantas: grandes en los rincones y entre columnas, contra las paredes (fuera del pasillo).
-  const wallPlants: Array<[number, number]> = [[0.6, 1.0], [8.4, 1.0], [15.1, 0.8], [19.3, 1.1], [18.2, 0.8]];
+  const wallPlants: Array<[number, number]> = [[0.6, 0.75], [8.4, 0.75], [15.1, 0.8], [19.3, 0.8], [18.2, 0.8]];
   for (const [x, size] of wallPlants) for (const wall of [-1, 1]) {
     props.push({ kind: 'plant', x, z: wall * (ROOM.width / 2 - 0.45), w: 0.6, d: 0.6, rot: 0, size });
   }
   // dos más en el centro del pasillo, al fondo, junto a la pared acanalada
-  props.push({ kind: 'plant', x: 19.4, z: -0.9, w: 0.6, d: 0.6, rot: 0, size: 1.2 }, { kind: 'plant', x: 19.4, z: 0.9, w: 0.6, d: 0.6, rot: 0, size: 0.9 });
+  props.push({ kind: 'plant', x: 19.4, z: -0.9, w: 0.6, d: 0.6, rot: 0, size: 0.8 }, { kind: 'plant', x: 19.4, z: 0.9, w: 0.6, d: 0.6, rot: 0, size: 0.9 });
 
   return { room: ROOM, islands, seats, extraSeats, props, lamps };
 }

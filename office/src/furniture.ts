@@ -170,33 +170,20 @@ export function plantGeometry(size: number, seed: number): THREE.BufferGeometry 
 /** Maceta baja y ancha del centro del pasillo, con una planta grande. */
 export function planterGeometry(seed: number): THREE.BufferGeometry {
   return bake(g => {
-    g.box(-6, 0, -6, 7, 7, 7, PAL.black2);
-    g.box(-5, 6, -5, 6, 7, 6, PAL.soil);
-    drawPlant(g, 0, 7, 0, 18, 9, seed, 16);
-    drawPlant(g, 3, 7, -3, 9, 5, seed + 5, 7);
+    g.box(-5, 0, -5, 6, 7, 6, PAL.black2);
+    g.box(-4, 6, -4, 5, 7, 5, PAL.soil);
+    drawPlant(g, 0, 7, 0, 10, 6, seed, 13);
+    drawPlant(g, 3, 7, -3, 6, 4, seed + 5, 6);
   });
 }
 
-/** Sillón doble (frente a +z). */
-export function sofaGeometry(): THREE.BufferGeometry {
+/** Banco tapizado SIN respaldo (largo a lo largo de x): 1,4 × 0,42 m, asiento a 0,45 m, patas negras. */
+export function benchGeometry(): THREE.BufferGeometry {
   return bake(g => {
-    for (const x of [-13, 12]) for (const z of [-6, 5]) g.box(x, 0, z, x + 1, 2, z + 1, PAL.black);
-    g.box(-14, 2, -7, 14, 6, 7, PAL.sofa);
-    g.box(-11, 6, -3, -0, 8, 7, PAL.black2);
-    g.box(0, 6, -3, 11, 8, 7, PAL.black2);
-    g.box(-14, 6, -7, 14, 14, -3, PAL.sofa);
-    for (const x of [-14, 11]) g.box(x, 6, -7, x + 3, 10, 7, PAL.sofa);
-  });
-}
-
-/** Sillón individual (frente a +z). */
-export function armchairGeometry(): THREE.BufferGeometry {
-  return bake(g => {
-    for (const x of [-6, 5]) for (const z of [-6, 5]) g.box(x, 0, z, x + 1, 2, z + 1, PAL.black);
-    g.box(-7, 2, -7, 7, 6, 7, PAL.sofa);
-    g.box(-4, 6, -3, 4, 8, 7, PAL.black2);
-    g.box(-7, 6, -7, 7, 14, -3, PAL.sofa);
-    for (const x of [-7, 4]) g.box(x, 6, -7, x + 3, 10, 7, PAL.sofa);
+    for (const x of [-11, 10]) for (const z of [-3, 2]) g.box(x, 0, z, x + 1, 3, z + 1, PAL.black);
+    g.box(-11, 3, -3, 11, 4, 3, PAL.black);                 // bastidor
+    g.box(-11, 4, -3, 11, 7, 3, PAL.sofa);                  // almohadón
+    g.box(0, 6, -3, 1, 7, 3, PAL.black2);                   // costura al medio (2 lugares)
   });
 }
 
