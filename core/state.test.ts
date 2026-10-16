@@ -73,10 +73,10 @@ describe('parseLines', () => {
     expect(deriveStatus(recs, at(12, 0, 30))).toBe('waiting');
   });
 
-  it('truncated fixture (última línea pegada sin salto) no tira y se descarta esa línea', () => {
+  it('truncated fixture: se descarta la última línea a medias y se conserva el fin de turno', () => {
     const recs = fx('truncated');
-    expect(recs.map((r) => r.type)).toEqual(['bridge-session', 'user']);
-    expect(deriveStatus(recs, at(12, 0, 30))).toBe('working');
+    expect(recs.map((r) => r.type)).toEqual(['bridge-session', 'user', 'assistant']);
+    expect(deriveStatus(recs, at(12, 0, 30))).toBe('waiting');
   });
 
   it('ignores blanks, non-objects and invalid JSON', () => {
