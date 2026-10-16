@@ -1,0 +1,15 @@
+name = "virtual-ofi-relay"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+# Durable Object con estado en MEMORIA (plan gratis: sin KV ni escrituras a disco por latido).
+# En el plan gratis los DO deben ser de la clase SQLite (new_sqlite_classes), aunque no usemos storage.
+[[durable_objects.bindings]]
+name = "OFFICE"
+class_name = "OfficeDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["OfficeDO"]
+
+# La clave NO va aqui: se crea con `npx wrangler secret put RELAY_KEY`.
