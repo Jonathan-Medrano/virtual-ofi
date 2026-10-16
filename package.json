@@ -1,6 +1,6 @@
 {
   "name": "virtual-ofi",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Oficina virtual voxel: cada sesión de Claude Code es un personaje.",
   "type": "module",
