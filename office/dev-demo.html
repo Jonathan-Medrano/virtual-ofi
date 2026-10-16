@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oficina virtual (demo)</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #15171a; overflow: hidden; }
+    #ofi { display: block; width: 100vw; height: 100vh; touch-action: none; }
+    #hud { position: fixed; left: 8px; bottom: 8px; font: 12px system-ui, sans-serif; color: #cfd3d7; background: rgba(0,0,0,.45); padding: 4px 8px; border-radius: 4px; pointer-events: none; }
+    #leyenda { position: fixed; left: 8px; top: 8px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; max-width: calc(100vw - 32px);
+      font: 600 13px system-ui, sans-serif; color: #eef0f2; background: rgba(16,18,21,.78); padding: 6px 10px; border-radius: 6px; pointer-events: none; }
+    #leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+    #leyenda i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+    #leyenda .sep { width: 1px; height: 14px; background: #555; }
+    #leyenda .bang { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: #ffc233; color: #1b1c1f; font-size: 12px; }
+    body.shot #hud { display: none; }
+  </style>
+</head>
+<body>
+  <canvas id="ofi"></canvas>
+  <div id="leyenda"></div>
+  <div id="hud"></div>
+  <script type="module" src="./src/demo-main.ts"></script>
+</body>
+</html>
