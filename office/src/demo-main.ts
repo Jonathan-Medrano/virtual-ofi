@@ -42,6 +42,7 @@ const ocam = createOfficeCamera(canvas, { preset: cam && cam in CAMERA_PRESETS ?
 const walkBtn = document.getElementById('recorrer')!;
 const walk = createWalkView({
   canvas,
+  scene,
   crowd: () => crowd,
   sessionOf: id => snaps.find(s => s.id === id),
   statusText: statusEs,

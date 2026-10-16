@@ -97,6 +97,7 @@ function mountOffice() {
   const cam = createOfficeCamera(canvas, { preset: 'alto' })
   walk = createWalkView({
     canvas,
+    scene,
     crowd: () => crowd,
     sessionOf: id => current().find(s => s.id === id),
     statusText: statusEs,
