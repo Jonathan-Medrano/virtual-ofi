@@ -1,0 +1,34 @@
+# Empaquetado: instalador NSIS por usuario (sin admin, un clic) + actualización por GitHub Releases.
+appId: app.virtualofi.oficina
+productName: Oficina virtual
+copyright: virtual-ofi
+directories:
+  output: release
+  buildResources: build
+# main/preload/renderer ya vienen compilados y con sus dependencias dentro (esbuild): solo eso va en el asar.
+files:
+  - dist-shell/**/*
+  - package.json
+  - "!**/*.test.*"
+  - "!**/*.map"
+  - "!**/fixtures/**"
+  - "!**/node_modules/**"
+asar: true
+win:
+  target:
+    - target: nsis
+      arch: x64
+  icon: build/icon.ico
+  artifactName: Oficina-virtual-Setup-${version}.${ext}
+nsis:
+  oneClick: true
+  perMachine: false
+  allowElevation: false
+  deleteAppDataOnUninstall: false
+  include: build/installer.nsh
+  uninstallDisplayName: Oficina virtual
+  runAfterFinish: true
+publish:
+  provider: github
+  owner: Jonathan-Medrano
+  repo: virtual-ofi

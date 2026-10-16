@@ -11,6 +11,7 @@ import { hashAccount, resolveAlias, type SessionSnapshot } from '../core/identit
 import { CH, DEFAULT_COLORS, defaultAlias, splitInput, toPublicSettings, toSessionsPayload, type Account, type SessionsPayload } from './api'
 import { createPrefs } from './prefs'
 import { createTray } from './tray'
+import { autoUpdater } from 'electron-updater'
 
 const TICK_MS = 3000
 
@@ -70,6 +71,23 @@ async function detectAccounts(store: ReturnType<typeof createStore>, prefs: Retu
   })
 }
 
+// --- Auto-actualización (solo app instalada): revisa al arrancar y cada pocas horas, descarga en segundo plano
+// e instala al cerrar. Sin internet no pasa nada: el error se ignora y se reintenta en el próximo ciclo.
+const UPDATE_EVERY_MS = 4 * 60 * 60 * 1000
+function setupAutoUpdate() {
+  if (!app.isPackaged || process.env.OFI_SHOT) return
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true
+  autoUpdater.logger = null
+  autoUpdater.on('update-downloaded', info => console.log('[update] lista para instalar al cerrar:', info.version))
+  autoUpdater.on('error', () => console.log('[update] sin novedades (error o sin conexión)'))
+  const check = () => {
+    autoUpdater.checkForUpdates().catch(() => {})
+  }
+  setTimeout(check, 15_000)
+  setInterval(check, UPDATE_EVERY_MS)
+}
+
 function main() {
   const store = createStore(dataDir())
   const prefs = createPrefs(dataDir())
@@ -89,6 +107,7 @@ function main() {
     app.quit()
   })
   applyLoginItem(prefs.get().launchAtLogin)
+  setupAutoUpdate()
 
   const push = () => win?.webContents.send(CH.sessions, last)
   let busy = false
@@ -131,8 +150,22 @@ function main() {
     const wait = Number(process.env.OFI_SHOT_WAIT_MS) || 6000
     win.webContents.once('did-finish-load', () => {
       setTimeout(async () => {
-        const img = await win!.webContents.capturePage()
-        fs.writeFileSync(shot, img.toPNG())
+        // capturePage puede fallar (UnknownVizError) si el compositor aún no entregó un cuadro: reintenta y nunca deja la app colgada.
+        let ok = false
+        for (let i = 0; i < 8 && !ok; i++) {
+          try {
+            win!.webContents.invalidate()
+            const img = await win!.webContents.capturePage()
+            if (!img.isEmpty()) {
+              fs.writeFileSync(shot, img.toPNG())
+              ok = true
+            }
+          } catch (e) {
+            console.log('[shot] reintento', i + 1, (e as Error).message)
+          }
+          if (!ok) await new Promise(r => setTimeout(r, 1000))
+        }
+        if (!ok) process.exitCode = 1
         quitting = true
         app.quit()
       }, wait)

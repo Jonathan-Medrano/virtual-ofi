@@ -10,12 +10,18 @@
     "check:clean": "node tools/check-clean.mjs",
     "app:build": "node shell/build.mjs",
     "app:start": "node shell/build.mjs && electron .",
-    "app:dev": "node shell/build.mjs && electron . --dev"
+    "app:dev": "node shell/build.mjs && electron . --dev",
+    "icon": "node tools/make-icon.mjs",
+    "dist": "node shell/build.mjs && electron-builder --win --publish never",
+    "release": "node tools/release.mjs"
   },
   "devDependencies": {
+    "@electron/asar": "^4.3.1",
     "@types/node": "^22.0.0",
     "@types/three": "^0.170.0",
     "electron": "^44.8.0",
+    "electron-builder": "^26.15.3",
+    "electron-updater": "^6.8.9",
     "esbuild": "^0.28.2",
     "playwright": "^1.48.2",
     "typescript": "^5.6.0",

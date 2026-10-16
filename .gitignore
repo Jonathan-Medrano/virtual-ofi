@@ -5,3 +5,5 @@ release
 *.log
 .env
 dist-shell
+# artefactos de empaquetado
+*.blockmap
